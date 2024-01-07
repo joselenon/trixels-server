@@ -1,0 +1,152 @@
+{
+  "coop": {
+    "level":{
+      "1": {
+        "numberOfCollectors": {
+          "oneCollector": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 1
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            }
+          },
+          "twoCollectors": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 1
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            },
+            "secondDrop": {
+              "egg": {
+                "quantity": 1, "odd": 1
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            }
+          }
+        }
+      },
+      "2": {
+        "numberOfCollectors": {
+          "oneCollector": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 0.9
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0.1
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            }
+          },
+          "twoCollectors": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 0.9
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0.1
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            },
+            "secondDrop": {
+              "egg": {
+                "quantity": 1, "odd": 1
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            }
+          }
+        }
+      },
+      "5": {
+        "numberOfCollectors": {
+          "oneCollector": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 0.88
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0.1
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0.02
+              }
+            }
+          },
+          "twoCollectors": {
+            "firstDrop": {
+              "egg": {
+                "quantity": 1, "odd": 0.88
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0.1
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0.02
+              }
+            },
+            "secondDrop": {
+              "egg": {
+                "quantity": 1, "odd": 1
+              },
+              "itm_seltsamEgg": {
+                "quantity": 1, "odd": 0
+              },
+              "itm_eggsplosive": {
+                "quantity": 1, "odd": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "slugger": {
+    "level": {
+      "1": {
+        "numberOfCollectors": {
+          "oneCollector": {
+            "itm_silkfiber": 100,
+            "itm_seltsamEgg": 0,
+            "itm_eggsplosive": 0
+          }
+        }
+      },
+      "2": {
+        "numberOfCollectors": {
+          "twoCollectors": {
+            "itm_silkfiber": 100,
+            "itm_seltsamEgg": 0,
+            "itm_eggsplosive": 0
+          }
+        }
+      },
+      "5": {}
+    }
+  }
+}
