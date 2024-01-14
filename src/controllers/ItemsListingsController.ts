@@ -11,7 +11,7 @@ class ItemsListingsController {
     try {
       const itemsListingsRedis = await RedisInstance.get<ItemListingProps[]>(
         'allItemsListings',
-        { inJSON: true },
+        { isJSON: true },
       );
 
       if (itemsListingsRedis) return itemsListingsRedis;
@@ -21,7 +21,7 @@ class ItemsListingsController {
         await UpdateItemsInfoService();
         const itemsListingsRedis = await RedisInstance.get<ItemListingProps[]>(
           'allItemsListings',
-          { inJSON: true },
+          { isJSON: true },
         );
 
         return itemsListingsRedis;

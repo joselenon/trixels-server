@@ -25,7 +25,7 @@ class ItemHistoryPricesController {
       };
 
       const data = await getData();
-      return res.status(200).json(responseBody(true, 'GET_MSG', { prices: data }));
+      return res.status(200).json(responseBody(true, 'GET_MSG', data));
     } catch (err) {
       return next(err);
     }

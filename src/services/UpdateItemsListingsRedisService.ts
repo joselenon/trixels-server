@@ -12,7 +12,7 @@ class UpdateItemsListingsRedisService {
     try {
       const allItemsListingsJSON = JSON.stringify(allItemsListings);
       await RedisInstance.set('allItemsListings', allItemsListingsJSON, {
-        inJSON: true,
+        isJSON: true,
       });
 
       return allItemsListings;
@@ -24,7 +24,7 @@ class UpdateItemsListingsRedisService {
   getFromRedis = async () => {
     const itemsListingsRedis = await RedisInstance.get<ItemListingProps[]>(
       'allItemsListings',
-      { inJSON: true },
+      { isJSON: true },
     );
 
     if (itemsListingsRedis) return itemsListingsRedis;

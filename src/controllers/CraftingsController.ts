@@ -51,7 +51,7 @@ class ItemsListingsController {
         .then(async () => {
           const allItemsListingsJSON = JSON.stringify(allItemsListings);
           await RedisInstance.set('allItemsListings', allItemsListingsJSON, {
-            inJSON: true,
+            isJSON: true,
           });
 
           return allItemsListings;

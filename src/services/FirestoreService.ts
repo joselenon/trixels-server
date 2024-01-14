@@ -1,7 +1,9 @@
 // Otimizar tipagem (Priority: **)
 import * as admin from 'firebase-admin';
 
-import IFirebaseQueryResponse, {
+import {
+  IFirebaseAllDocumentsByCollectionQueryResponse,
+  IFirebaseQueryResponse,
   TDBCollections,
 } from '../config/interfaces/IFirebase';
 import {
@@ -31,6 +33,23 @@ export default class FirestoreService {
 
   // Specific query (if the document doesn't exists, it throws an error)
   // IMPORTANT: It throws error in case a docRef.get is requested with an nonexistent docId in db
+  async writeDocumentWithSpecificId<T extends admin.firestore.DocumentData>(
+    collection: TDBCollections,
+    docId: string,
+    payload: T,
+  ): Promise<string> {
+    try {
+      const docRef = this.firestore.collection(collection).doc(docId);
+      await docRef.set(payload);
+
+      return docRef.id;
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  // Specific query (if the document doesn't exists, it throws an error)
+  // IMPORTANT: It throws error in case a docRef.get is requested with an nonexistent docId in db
   async updateDocument<R>(
     collection: TDBCollections,
     docId: string,
@@ -51,10 +70,15 @@ export default class FirestoreService {
 
   // Specific query (if the document doesn't exists, it throws an error)
   // IMPORTANT: It throws error in case a docRef.get is requested with an nonexistent docId in db
-  async getDocumentRef<R, D>(
+  async getDocumentRef<D>(
     collection: TDBCollections,
     docId: string,
-  ): Promise<IFirebaseQueryResponse<R, D>> {
+  ): Promise<
+    IFirebaseQueryResponse<
+      admin.firestore.DocumentReference<admin.firestore.DocumentData>,
+      D
+    >
+  > {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
 
@@ -65,9 +89,8 @@ export default class FirestoreService {
 
       return {
         docId,
-        result:
-          docRef as admin.firestore.DocumentReference<admin.firestore.DocumentData> as R,
-        data: docSnapshotData as D,
+        result: docRef,
+        docData: docSnapshotData as D,
       };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
@@ -102,16 +125,14 @@ export default class FirestoreService {
         .limit(1);
       const docSnapshot = await docRef.get();
 
-      if (!docSnapshot.empty) {
-        const docId = docSnapshot.docs[0].id;
-        const docSnapshotData = docSnapshot.docs[0].data();
-        return {
-          docId: docId as string,
-          result: { ...docSnapshotData } as R,
-        };
-      } else {
-        return null;
-      }
+      if (docSnapshot.empty) return null;
+
+      const docId = docSnapshot.docs[0].id;
+      const docSnapshotData = docSnapshot.docs[0].data();
+      return {
+        docId: docId as string,
+        result: { ...docSnapshotData } as R,
+      };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -140,6 +161,24 @@ export default class FirestoreService {
 
       const docsData = await Promise.all(docsDataPromise);
       return docsData.length > 0 ? docsData : null;
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async getAllDocumentsByCollection<R>(
+    collection: TDBCollections,
+  ): Promise<IFirebaseAllDocumentsByCollectionQueryResponse<R> | null> {
+    try {
+      const collectionRef = this.firestore.collection(collection);
+      const collectionSnapshot = await collectionRef.get();
+
+      if (collectionSnapshot.empty) return null;
+
+      const collectionDocsData = collectionSnapshot.docs.map((doc) => {
+        return { docId: doc.id, docData: doc.data() as R };
+      });
+      return { result: collectionDocsData };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }

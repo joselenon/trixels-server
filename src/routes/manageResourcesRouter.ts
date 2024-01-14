@@ -8,6 +8,12 @@ manageResourcesRouter.get(
   URLS.ENDPOINTS.SAVE_RESOURCES.POST,
   SaveResourcesController.get,
 );
+
+manageResourcesRouter.put(
+  URLS.ENDPOINTS.SAVE_RESOURCES.POST,
+  SaveResourcesController.put,
+);
+
 manageResourcesRouter.post(
   URLS.ENDPOINTS.SAVE_RESOURCES.POST,
   SaveResourcesController.post,

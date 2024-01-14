@@ -2,7 +2,6 @@
 
 import { RedisInstance } from '..';
 import gameLibItemsJSON from '../assets/gameLibItems.json';
-import REDIS_KEYS from '../config/constants/REDIS_KEYS';
 const ProgressBar = require('progress');
 
 import { GameLibItemsProps } from '../config/interfaces/GameLibItemsProps';
@@ -69,7 +68,7 @@ export default function UpdateItemsInfoService() {
         progressBar.terminate();
         await UpdateHistoryPricesJSONService.updateHistoryPrices(allItemsListings);
         await UpdateItemsListingsRedisService.setItemsListingsRedis(allItemsListings);
-        await RedisInstance.set(REDIS_KEYS.lastItemsUpdate, new Date().getTime());
+        await RedisInstance.set('lastItemsUpdate', new Date().getTime());
 
         console.log(`${new Date().toLocaleString()} - All items updated successfully!`);
       })

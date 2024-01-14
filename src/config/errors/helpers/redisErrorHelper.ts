@@ -8,7 +8,7 @@ async function retryOperation(
 ) {
   const data = await fn();
   if (operation === 'get') {
-    if (data && options?.inJSON) {
+    if (data && options?.isJSON) {
       console.log('é json');
       throw new Error(`proposital json`);
       /*       return JSON.parse(data); */

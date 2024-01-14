@@ -8,4 +8,13 @@ export type TRedisCommands =
   | 'lpop'
   | 'rpop';
 
-export type TRedisOptions = { inJSON: boolean };
+export type TRedisOptions = { isJSON: boolean };
+
+export type TRedisKeys = 'lastItemsUpdate' | 'allItemsListings' | string;
+
+/*
+
+Chaves únicas para cada usuário:
+- resources:USERID
+
+*/
