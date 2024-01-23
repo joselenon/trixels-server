@@ -25,19 +25,7 @@ async function init() {
   await AppService.initialize();
   await UsersResourcesStartTimeService.initiateService();
 
-  const lastUpdateItemsTimestamp = await RedisInstance.get<number>('lastItemsUpdate');
-  const nowTime = new Date().getTime();
-
-  if (lastUpdateItemsTimestamp) {
-    if (nowTime - lastUpdateItemsTimestamp > 15 * 60 * 1000) {
-      // Se a chave existir e o intervalo for maior que 15 minutos, execute imediatamente
-      await UpdateItemsInfoService();
-    } else {
-      return console.log('Items update not needed. (already updated 15 minutes ago.)');
-    }
-  } else {
-    await UpdateItemsInfoService();
-  }
+  await UpdateItemsInfoService();
 
   setInterval(
     () => UpdateItemsInfoService(),

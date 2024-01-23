@@ -13,8 +13,17 @@ import AxiosService from './AxiosService';
 import UpdateHistoryPricesJSONService from './UpdateHistoryPricesJSONService';
 import UpdateItemsListingsRedisService from './UpdateItemsListingsRedisService';
 
-export default function UpdateItemsInfoService() {
+export default async function UpdateItemsInfoService() {
   try {
+    const lastUpdateItemsTimestamp = await RedisInstance.get<number>('lastItemsUpdate');
+    const nowTime = new Date().getTime();
+
+    if (lastUpdateItemsTimestamp) {
+      if (nowTime - lastUpdateItemsTimestamp < 15 * 60 * 1000) {
+        return console.log('Items update not needed. (already updated 15 minutes ago.)');
+      }
+    }
+
     const gameLibItems: GameLibItemsProps = gameLibItemsJSON;
     const itemsNames = Object.keys(gameLibItems);
 

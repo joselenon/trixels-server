@@ -9,31 +9,18 @@ import {
   IUserResourceFirebase,
   IUserResourcesRedis,
 } from '../config/interfaces/IUserResources';
+import JWTService from '../services/JWTService';
 
 class ManageResourcesController {
-  /*
-  get = (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { acc } = req.query;
-      const fileName = `${acc}_timer.json`;
-      const filePath = path.join(__dirname, '..', 'assets', fileName);
-
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      if (!fileContent) {
-        return res.status(404).json(responseBody(false, 'CODE_NOT_FOUND', null));
-      }
-
-      const fileParsed = JSON.parse(fileContent);
-      return res.status(200).json(responseBody(true, 'GET_MSG', fileParsed));
-    } catch (err) {
-      return next(err);
-    }
-  }; */
-
   get = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      /* const { acc } = req.query; */
+      const token = req.headers.authorization;
+      if (!token) throw new AuthError();
+
+      const tokenValue = JWTService.validateJWT(token.split('Bearer ')[1]);
+      /* const userId = tokenValue.userDocId; */
       const userId = '7ulTdNnojgJV0mAf52cP';
+
       const userInDb = await FirebaseInstance.getDocumentById('users', userId);
 
       if (!userInDb) throw new AuthError();
@@ -85,37 +72,51 @@ class ManageResourcesController {
   };
 
   put = async (req: Request, res: Response, next: NextFunction) => {
-    const userId = '7ulTdNnojgJV0mAf52cP';
+    try {
+      const token = req.headers.authorization;
+      if (!token) throw new AuthError();
 
-    const data = req.body as { startTime: number };
-    const { resourceId } = req.query;
+      const tokenValue = JWTService.validateJWT(token);
+      /* const userId = tokenValue.userDocId; */
+      const userId = '7ulTdNnojgJV0mAf52cP';
 
-    if (!resourceId) throw new GenericError();
+      const data = req.body as { startTime: number };
+      const { resourceId } = req.query;
 
-    const userResourcesRedis = await RedisInstance.get<IUserResourcesRedis>(
-      `resources:${userId}`,
-      {
-        isJSON: true,
-      },
-    );
+      if (!resourceId) throw new GenericError();
 
-    if (userResourcesRedis && userResourcesRedis[resourceId as string]) {
-      const selectedResource = userResourcesRedis[resourceId as string];
-      const updatedResource = { ...selectedResource, ...data };
-
-      await RedisInstance.set(
+      const userResourcesRedis = await RedisInstance.get<IUserResourcesRedis>(
         `resources:${userId}`,
-        { ...userResourcesRedis, [resourceId as string]: { ...updatedResource } },
-        { isJSON: true },
+        {
+          isJSON: true,
+        },
       );
-    }
 
-    res.status(200).send('boa');
+      if (userResourcesRedis && userResourcesRedis[resourceId as string]) {
+        const selectedResource = userResourcesRedis[resourceId as string];
+        const updatedResource = { ...selectedResource, ...data };
+
+        await RedisInstance.set(
+          `resources:${userId}`,
+          { ...userResourcesRedis, [resourceId as string]: { ...updatedResource } },
+          { isJSON: true },
+        );
+      }
+
+      return res.status(200).json(responseBody(true, 'GENERIC_MSG', null));
+    } catch (err) {
+      next(err);
+    }
   };
 
   post = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = '7ulTdNnojgJV0mAf52cP';
+      const token = req.headers.authorization;
+      if (!token) throw new AuthError();
+
+      const tokenValue = JWTService.validateJWT(token.split('Bearer ')[1]);
+      const userId = tokenValue.userDocId;
+
       const userRef = (await FirebaseInstance.getDocumentRef('users', userId)).result;
 
       const data = req.body as { [resourceId: string]: IResourceInfoCreationPayload };

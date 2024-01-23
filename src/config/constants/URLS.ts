@@ -21,11 +21,14 @@ const ENDPOINTS = {
 
 const API_ENDPOINTS = {
   AUTH: {
-    steam: {
-      initial: `${ENDPOINTS.AUTH}/steam`,
-      callback: `${ENDPOINTS.AUTH}/steam/callback`,
+    DISCORD: {
+      initial: `${ENDPOINTS.AUTH}/discord`,
+      callback: `${ENDPOINTS.AUTH}/discord/callback`,
     },
-    google: `${ENDPOINTS.AUTH}/google`,
+    USERNAME: `${ENDPOINTS.AUTH}/username`,
+  },
+  USER: {
+    GET: `/user`,
   },
   ITEM_HISTORY_PRICES: {
     GET: `/historyprices`,

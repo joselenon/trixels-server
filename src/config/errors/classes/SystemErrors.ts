@@ -76,3 +76,9 @@ export class EnvVariablesMissingError extends SystemError {
     );
   }
 }
+
+export class UnknownError extends SystemError {
+  constructor(message: string) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Unknown);
+  }
+}

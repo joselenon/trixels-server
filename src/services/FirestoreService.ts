@@ -124,11 +124,11 @@ export default class FirestoreService {
         .where(param, '==', paramValue)
         .limit(1);
       const docSnapshot = await docRef.get();
-
       if (docSnapshot.empty) return null;
 
       const docId = docSnapshot.docs[0].id;
       const docSnapshotData = docSnapshot.docs[0].data();
+
       return {
         docId: docId as string,
         result: { ...docSnapshotData } as R,
@@ -160,7 +160,7 @@ export default class FirestoreService {
       });
 
       const docsData = await Promise.all(docsDataPromise);
-      return docsData.length > 0 ? docsData : null;
+      return docsData.length > 0 ? docsData : [];
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
