@@ -3,7 +3,10 @@ import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import UserValidator from '../services/UserValidations/UserValidator';
-import { EmailAlreadyExistsError } from '../config/errors/classes/ClientErrors';
+import {
+  AuthError,
+  EmailAlreadyExistsError,
+} from '../config/errors/classes/ClientErrors';
 import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 
@@ -38,12 +41,14 @@ class UserController {
 
       const token = req.headers.authorization;
 
-      const validateJWT = JWTService.validateJWT(token);
-      const { username: usernameLogged } = validateJWT;
+      const validatedJWT = JWTService.validateJWT({
+        token,
+        mustBeAuth: false,
+      });
 
       const userCredentials = await UserService.getUserCredentials(
-        usernameLogged,
-        usernameToQuery ? usernameToQuery : usernameLogged,
+        validatedJWT && validatedJWT.username,
+        usernameToQuery,
       );
 
       res.status(200).json(responseBody(true, 'GET_MSG', userCredentials));
@@ -55,7 +60,10 @@ class UserController {
   updateUserCredentials = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const token = req.headers.authorization;
-      const { username } = JWTService.validateJWT(token);
+      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
+
+      if (!validatedJWT) throw new AuthError();
+      const { username } = validatedJWT;
 
       const { email, roninWallet } = req.body;
       if (!email && !roninWallet) throw new InvalidPayloadError();
@@ -76,7 +84,11 @@ class UserController {
   getEthereumDepositWallet = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const token = req.headers.authorization;
-      const { userDocId } = JWTService.validateJWT(token);
+
+      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
+      if (!validatedJWT) throw new AuthError();
+
+      const { userDocId } = validatedJWT;
 
       const ETHWalletAddress = await UserService.getEthereumDepositWallet(userDocId);
 

@@ -2,9 +2,17 @@
 import jwt from 'jsonwebtoken';
 
 import JWTConfig from '../config/app/JWTConfig';
-import { IJWTService } from '../config/interfaces/IJWT';
 import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
 import { IUserJWTPayload } from '../config/interfaces/IUser';
+
+export interface IJWTService {
+  signJWT(payload: IUserJWTPayload): string | undefined;
+  validateJWT(args: {
+    token: string;
+    mustBeAuth: boolean;
+    secretOrPublicKey?: string | undefined;
+  }): IUserJWTPayload | undefined;
+}
 
 class JWTService implements IJWTService {
   signJWT(payload: IUserJWTPayload) {
@@ -15,15 +23,18 @@ class JWTService implements IJWTService {
     return token;
   }
 
-  validateJWT(
-    token: string | undefined,
-    secretOrPublicKey?: jwt.Secret,
-  ): IUserJWTPayload {
+  validateJWT(args: {
+    token: string | undefined;
+    mustBeAuth: boolean;
+    secretOrPublicKey?: string | undefined;
+  }): IUserJWTPayload | undefined {
     try {
+      const { mustBeAuth, token, secretOrPublicKey } = args;
+
+      if (!mustBeAuth) return;
       if (!token) throw new AuthError();
 
       let filteredToken = token;
-
       if (filteredToken.includes('Bearer')) {
         filteredToken = token.split('Bearer ')[1];
       }
@@ -33,7 +44,7 @@ class JWTService implements IJWTService {
         secretOrPublicKey ? secretOrPublicKey : JWTConfig.secret,
       );
 
-      if (!validated) throw new AuthError();
+      if (!validated && mustBeAuth) throw new AuthError();
 
       return validated as IUserJWTPayload;
     } catch (err: any) {

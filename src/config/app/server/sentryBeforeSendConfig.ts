@@ -3,9 +3,20 @@ import { Event } from '@sentry/node';
 
 export default function sentryBeforeSendConfig(event: Event) {
   if (event.exception && event.exception.values) {
+    const exception = event.exception?.values[0];
+
     console.log(
       'This is the event \n',
-      `Type: ${event.exception?.values[0].type} \n Value: ${event.exception?.values[0].value}`,
+      `Type: ${exception.type}
+      \n Value: ${exception.value}
+      \n Stack Trace: ${
+        exception.stacktrace && exception.stacktrace.frames
+          ? exception.stacktrace.frames
+              .map((frame) => `${frame.filename}:${frame.lineno}`)
+              .join('\n')
+          : 'N/A'
+      }
+      `,
     );
 
     const shouldFilter = event.exception.values.some((value) => {

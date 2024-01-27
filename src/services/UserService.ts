@@ -43,7 +43,7 @@ class UserService {
   }
 
   async getUserCredentials(
-    usernameLogged: string,
+    usernameLogged: string | undefined,
     usernameToQuery: string,
   ): Promise<IUserToFrontEnd> {
     /* !!!CHECANDO SE EXISTE SOMENTE O USUARIO QUE ESTÁ SENDO PESQUISADO!!! */
@@ -57,12 +57,20 @@ class UserService {
     const { createdAt, username, avatar, roninWallet, email, balance } = userInDb.result;
     const isSameUser = usernameLogged === usernameToQuery;
 
+    const filteredWallet = () => {
+      if (!roninWallet.value) return undefined;
+
+      if (isSameUser) {
+        return roninWallet.value;
+      } else {
+        return cutWalletAddress(roninWallet.value);
+      }
+    };
+
     return {
       username,
       avatar,
-      roninWallet: {
-        value: isSameUser ? roninWallet.value : cutWalletAddress(roninWallet.value),
-      },
+      roninWallet: { value: filteredWallet() },
       email: isSameUser ? email : undefined,
       balance: isSameUser ? balance : undefined,
       createdAt,
