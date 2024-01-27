@@ -1,0 +1,39 @@
+type IEmail {
+  lastEmail: String
+  updatedAt: Float
+  value: String
+  verified: Boolean
+}
+
+type UserData {
+  username: String
+  steamid: String
+  avatar: String
+  balance: Float
+  tradeLink: String
+  email: IEmail
+}
+type User {
+  success: Boolean!
+  message: String!
+  data: UserData
+}
+
+type BalanceData {
+  balance: Int
+}
+type Balance {
+  success: Boolean!
+  message: String!
+  data: BalanceData!
+}
+
+
+type Query {
+  getUser(steamid: String): User!
+  getBalance: Balance!
+}
+
+type Subscription {
+  getLiveBalance: Balance!
+}

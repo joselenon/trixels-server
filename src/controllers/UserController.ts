@@ -4,7 +4,7 @@ import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import UserValidator from '../services/UserValidations/UserValidator';
 import { EmailAlreadyExistsError } from '../config/errors/classes/ClientErrors';
-import UserService from '../services/UserService';
+import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 
 class UserController {
@@ -34,7 +34,8 @@ class UserController {
 
   getUserCredentials = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { username: usernameToQuery } = req.body;
+      const usernameToQuery = req.query.username as string;
+
       const token = req.headers.authorization;
 
       const validateJWT = JWTService.validateJWT(token);
@@ -42,11 +43,45 @@ class UserController {
 
       const userCredentials = await UserService.getUserCredentials(
         usernameLogged,
-        usernameToQuery,
+        usernameToQuery ? usernameToQuery : usernameLogged,
       );
 
       res.status(200).json(responseBody(true, 'GET_MSG', userCredentials));
     } catch (err) {
+      next(err);
+    }
+  };
+
+  updateUserCredentials = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+      const { username } = JWTService.validateJWT(token);
+
+      const { email, roninWallet } = req.body;
+      if (!email && !roninWallet) throw new InvalidPayloadError();
+
+      const filteredPayload = {} as IUpdateUserCredentialsPayload;
+
+      if (email) filteredPayload.email = email;
+      if (roninWallet) filteredPayload.roninWallet = roninWallet;
+
+      await UserService.updateUserCredentials(username, filteredPayload);
+
+      res.status(200).json(responseBody(true, 'UPDATE_MSG', null));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getEthereumDepositWallet = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+      const { userDocId } = JWTService.validateJWT(token);
+
+      const ETHWalletAddress = await UserService.getEthereumDepositWallet(userDocId);
+
+      res.status(200).json(responseBody(true, 'GET_MSG', ETHWalletAddress));
+    } catch (err: any) {
       next(err);
     }
   };

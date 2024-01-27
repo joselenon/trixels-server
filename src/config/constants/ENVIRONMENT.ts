@@ -21,12 +21,9 @@ const ENVIRONMENT = {
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY as string,
   FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL as string,
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY as string,
-  STEAM_CLIENT_SECRET: process.env.STEAM_CLIENT_SECRET as string,
   JWT_SECRET: process.env.JWT_SECRET as string,
-
-  DELAY_BETWEEN_ITEMS_ATT_IN_MINUTES: parseInt(
-    process.env.DELAY_BETWEEN_ITEMS_ATT_IN_MINUTES!,
-  ) as number,
+  WALLETS_ENCRYPTION_KEY: process.env.WALLETS_ENCRYPTION_KEY as string,
+  WALLETS_ENCRYPTION_KEY_VERSION: process.env.WALLETS_ENCRYPTION_KEY as string,
 };
 
 const requiredVariables = [
@@ -43,9 +40,9 @@ const requiredVariables = [
   'FIREBASE_PRIVATE_KEY',
   'FIREBASE_CLIENT_EMAIL',
   'GOOGLE_API_KEY',
-  'STEAM_CLIENT_SECRET',
   'JWT_SECRET',
-  'DELAY_BETWEEN_ITEMS_ATT_IN_MINUTES',
+  'WALLETS_ENCRYPTION_KEY',
+  'WALLETS_ENCRYPTION_KEY_VERSION',
 ];
 
 const missingVariables = requiredVariables.filter((variable) => !process.env[variable]);

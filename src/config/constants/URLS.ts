@@ -17,6 +17,8 @@ const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
 
 const ENDPOINTS = {
   AUTH: '/auth',
+  USER: '/user',
+  GRAPHQL: '/graphql',
 };
 
 const API_ENDPOINTS = {
@@ -28,17 +30,11 @@ const API_ENDPOINTS = {
     USERNAME: `${ENDPOINTS.AUTH}/username`,
   },
   USER: {
-    GET: `/user`,
+    GET_USER_CREDENTIALS: `${ENDPOINTS.USER}`,
+    UPDATE_USER_CREDENTIALS: `${ENDPOINTS.USER}`,
+    GET_ETHEREUM_DEPOSIT_WALLET: `${ENDPOINTS.USER}/depositwallet`,
   },
-  ITEM_HISTORY_PRICES: {
-    GET: `/historyprices`,
-  },
-  SAVE_RESOURCES: {
-    POST: `/saveresources`,
-  },
-  ITEM_LISTINGS: {
-    GET: `/itemslistings`,
-  },
+  GRAPHQL: `${ENDPOINTS.GRAPHQL}`,
 };
 
 const URLS = {

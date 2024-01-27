@@ -9,4 +9,9 @@ export interface IFirebaseAllDocumentsByCollectionQueryResponse<R> {
 }
 
 // Custom (modify when needed)
-export type TDBCollections = 'usersResources' | 'users' | 'multiesRefs';
+export type TDBCollections =
+  | 'users'
+  | 'multiesRefs'
+  | 'transactions'
+  | 'bets'
+  | 'ethereumDepositWallets';

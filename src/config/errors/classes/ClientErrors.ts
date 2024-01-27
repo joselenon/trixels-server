@@ -23,12 +23,18 @@ export class GenericError extends ClientError {
 
 export class UserNotFound extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.USER_NOT_FOUND) {
-    super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Database);
+    super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Database);
   }
 }
 
 export class AuthError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.AUTH_MSG) {
+    super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class JWTExpiredError extends ClientError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.JWT_EXPIRED) {
     super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }

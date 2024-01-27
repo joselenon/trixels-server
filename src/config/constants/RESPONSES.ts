@@ -31,6 +31,7 @@ const RESPONSE_CONFIG = {
     CLIENT_ERROR_MSGS: {
       GENERIC_MSG: 'Houve um erro... já estamos trabalhando para corrigí-lo!',
       AUTH_MSG: 'Não autorizado',
+      JWT_EXPIRED: 'Session expired. Please relog.',
       CODE_NOT_FOUND: 'Código inválido',
       CODE_USAGE_LIMIT: 'Limite de uso para o código atingido',
       CODE_ALREADY_USED: 'Código já utilizado',

@@ -1,0 +1,11 @@
+type Bet {
+  id: Int
+}
+
+input MakeBet {
+  amountBet: Int!
+}
+
+type Mutation {
+  betOnJackpot(payload: MakeBet!): Boolean!
+}

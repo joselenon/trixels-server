@@ -1,6 +1,6 @@
 export default interface ITransaction {
   createdAt: string;
-  method: 'code';
+  method: 'berry';
   type: 'deposit' | 'withdraw';
   userRef: any;
   value: number;

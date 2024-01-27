@@ -53,7 +53,7 @@ export default class FirestoreService {
   async updateDocument<R>(
     collection: TDBCollections,
     docId: string,
-    payload: any,
+    payload: any /* MUDAR ISSO IMEDIATAMENTE */,
   ): Promise<IFirebaseQueryResponse<R>> {
     try {
       const docRef = await this.firestore.collection(collection).doc(docId);
@@ -116,7 +116,7 @@ export default class FirestoreService {
   async getSingleDocumentByParam<R>(
     collection: TDBCollections,
     param: string,
-    paramValue: string,
+    paramValue: string | admin.firestore.DocumentReference<admin.firestore.DocumentData>,
   ): Promise<IFirebaseQueryResponse<R> | null> {
     try {
       const docRef = await this.firestore

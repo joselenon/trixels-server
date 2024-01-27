@@ -10,16 +10,12 @@ export interface IUser {
     lastEmail: string;
     updatedAt: number;
   };
-  ronin_wallet: {
+  roninWallet: {
     value: string;
     lastWallet: string;
     updatedAt: number;
   };
   createdAt: number;
-}
-
-export interface IUserUpdatePayload {
-  email?: string;
 }
 
 export interface IUserJWTPayload {
@@ -38,7 +34,7 @@ export interface IUserToFrontEnd {
     lastEmail: string;
     updatedAt: number;
   };
-  ronin_wallet: {
+  roninWallet: {
     value: string;
   };
   createdAt: number;

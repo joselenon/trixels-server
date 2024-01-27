@@ -5,8 +5,6 @@ import ENVIRONMENT from './config/constants/ENVIRONMENT';
 import AppService from './services/AppService';
 import FirestoreService from './services/FirestoreService';
 import RedisService from './services/RedisService';
-import UpdateItemsInfoService from './services/UpdateItemsInfoService';
-import UsersResourcesStartTimeService from './services/UsersResourcesStartTimeService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -23,14 +21,6 @@ const RedisInstance = new RedisService(
 
 async function init() {
   await AppService.initialize();
-  await UsersResourcesStartTimeService.initiateService();
-
-  await UpdateItemsInfoService();
-
-  setInterval(
-    () => UpdateItemsInfoService(),
-    ENVIRONMENT.DELAY_BETWEEN_ITEMS_ATT_IN_MINUTES * 60 * 1000,
-  );
 
   return { FirebaseInstance, RedisInstance };
 }
