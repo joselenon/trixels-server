@@ -31,10 +31,13 @@ const RESPONSE_CONFIG = {
     CLIENT_ERROR_MSGS: {
       GENERIC_MSG: 'Houve um erro... já estamos trabalhando para corrigí-lo!',
       AUTH_MSG: 'Não autorizado',
+      INVALID_USERNAME: 'Username or password invalid.',
+      INVALID_PASSWORD: 'Username or password invalid.',
       JWT_EXPIRED: 'Session expired. Please relog.',
       CODE_NOT_FOUND: 'Código inválido',
       CODE_USAGE_LIMIT: 'Limite de uso para o código atingido',
       CODE_ALREADY_USED: 'Código já utilizado',
+      USERNAME_ALREADY_EXISTS: 'Username already exists.',
       EMAIL_ALREADY_EXISTS: 'E-mail já existe',
       EMAIL_NOT_UPDATABLE: 'E-mail não pode ser atualizado',
       USER_NOT_FOUND: 'User not found',

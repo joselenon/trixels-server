@@ -33,9 +33,33 @@ export class AuthError extends ClientError {
   }
 }
 
+export class InvalidUsername extends ClientError {
+  constructor(
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_USERNAME,
+  ) {
+    super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class InvalidPassword extends ClientError {
+  constructor(
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_PASSWORD,
+  ) {
+    super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
 export class JWTExpiredError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.JWT_EXPIRED) {
     super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class UsernameAlreadyExistsError extends ClientError {
+  constructor(
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.USERNAME_ALREADY_EXISTS,
+  ) {
+    super(400, message, RESPONSE_CONFIG.ERROR.TYPES.UserInfo);
   }
 }
 

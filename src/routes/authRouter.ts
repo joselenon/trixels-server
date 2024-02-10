@@ -4,6 +4,7 @@ import UserController from '../controllers/UserController';
 
 const authRouter = Router();
 
-authRouter.post(URLS.ENDPOINTS.AUTH.USERNAME, UserController.createUser);
+authRouter.post(URLS.ENDPOINTS.AUTH.REGISTER, UserController.registerUser);
+authRouter.post(URLS.ENDPOINTS.AUTH.LOGIN, UserController.loginUser);
 
 export default authRouter;

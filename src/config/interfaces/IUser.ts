@@ -2,6 +2,7 @@ import { IFirebaseQueryResponse } from './IFirebase';
 
 export interface IUser {
   username: string;
+  password: string;
   avatar: string;
   balance: number;
   email: {

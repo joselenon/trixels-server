@@ -2,7 +2,7 @@
 import jwt from 'jsonwebtoken';
 
 import JWTConfig from '../config/app/JWTConfig';
-import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
+import { AuthError } from '../config/errors/classes/ClientErrors';
 import { IUserJWTPayload } from '../config/interfaces/IUser';
 
 export interface IJWTService {
@@ -10,7 +10,7 @@ export interface IJWTService {
   validateJWT(args: {
     token: string;
     mustBeAuth: boolean;
-    secretOrPublicKey?: string | undefined;
+    /* secretOrPublicKey?: string | undefined; */
   }): IUserJWTPayload | undefined;
 }
 
@@ -26,11 +26,12 @@ class JWTService implements IJWTService {
   validateJWT(args: {
     token: string | undefined;
     mustBeAuth: boolean;
-    secretOrPublicKey?: string | undefined;
+    /* secretOrPublicKey?: string | undefined; */
   }): IUserJWTPayload | undefined {
     try {
-      const { mustBeAuth, token, secretOrPublicKey } = args;
+      const { mustBeAuth, token } = args;
 
+      /* ARRUMAR ISSO. POR MAIS QUE NÃO PRECISE, É PRECISO AUTENTICAR QUEM ESTA FAZENDO A REQ. */
       if (!mustBeAuth) return;
       if (!token) throw new AuthError();
 
@@ -39,18 +40,15 @@ class JWTService implements IJWTService {
         filteredToken = token.split('Bearer ')[1];
       }
 
-      const validated = jwt.verify(
-        filteredToken,
-        secretOrPublicKey ? secretOrPublicKey : JWTConfig.secret,
-      );
-
+      const validated = jwt.verify(filteredToken, JWTConfig.secret);
       if (!validated && mustBeAuth) throw new AuthError();
 
       return validated as IUserJWTPayload;
     } catch (err: any) {
       const error = err as Error;
 
-      if (error.name === 'TokenExpiredError') throw new JWTExpiredError();
+      /* if (error.name === 'TokenExpiredError') throw new JWTExpiredError(); */
+      if (error.name === 'TokenExpiredError') return undefined;
       throw err;
     }
   }

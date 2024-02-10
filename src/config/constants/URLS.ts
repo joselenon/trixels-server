@@ -27,7 +27,8 @@ const API_ENDPOINTS = {
       initial: `${ENDPOINTS.AUTH}/discord`,
       callback: `${ENDPOINTS.AUTH}/discord/callback`,
     },
-    USERNAME: `${ENDPOINTS.AUTH}/username`,
+    REGISTER: `${ENDPOINTS.AUTH}/register`,
+    LOGIN: `${ENDPOINTS.AUTH}/login`,
   },
   USER: {
     GET_USER_CREDENTIALS: `${ENDPOINTS.USER}`,

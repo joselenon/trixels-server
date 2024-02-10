@@ -12,9 +12,9 @@ const resolvers = {
     getUser: async (_: any, __: any, context: IGQLContext) => {
       try {
         const { validateAuth, jwtToken, UserController } = context;
-        const { validatedJWTPayload } = await validateAuth(jwtToken);
+        const { jwtPayload } = await validateAuth(jwtToken);
 
-        const userData = await UserController.getUser(validatedJWTPayload.userDocId);
+        const userData = await UserController.getUser(jwtPayload.userDocId);
 
         if (!userData) throw new DocumentNotFoundError();
 
@@ -27,14 +27,15 @@ const resolvers = {
     getBalance: async (_: any, args: any, context: IGQLContext) => {
       try {
         const { validateAuth, jwtToken } = context;
-        const { validatedJWTPayload } = await validateAuth(jwtToken);
+        const { jwtPayload } = await validateAuth(jwtToken);
 
-        const balance = await BalanceService.getBalance(validatedJWTPayload.userDocId);
+        const balance = await BalanceService.getBalance(jwtPayload.userDocId);
+
         pSubEventHelper(
           'GET_LIVE_BALANCE',
           'getLiveBalance',
           { success: true, message: 'GET_MSG', data: balance },
-          validatedJWTPayload.userDocId,
+          jwtPayload.userDocId,
         );
 
         return responseBody(true, 'GET_MSG', balance);
@@ -49,10 +50,10 @@ const resolvers = {
       subscribe: async (_: any, args: any, context: IGQLContext) => {
         try {
           const { validateAuth, jwtToken } = context;
-          const { validatedJWTPayload } = await validateAuth(jwtToken);
+          const { jwtPayload } = await validateAuth(jwtToken);
 
           return PSub.asyncIterator([
-            `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${validatedJWTPayload.userDocId}`,
+            `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${jwtPayload.userDocId}`,
           ]);
         } catch (err) {
           console.log('Erro aqui', err);
