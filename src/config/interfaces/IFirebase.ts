@@ -14,4 +14,5 @@ export type TDBCollections =
   | 'multiesRefs'
   | 'transactions'
   | 'bets'
+  | 'usersResources'
   | 'ethereumDepositWallets';
