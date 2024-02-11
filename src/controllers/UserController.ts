@@ -138,6 +138,23 @@ class UserController {
       next(err);
     }
   };
+
+  getUserResources = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+
+      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
+      if (!validatedJWT) throw new AuthError();
+
+      const { userDocId } = validatedJWT;
+
+      const resources = await UserService.getEthereumDepositWallet(userDocId);
+
+      res.status(200).json(responseBody(true, 'GET_MSG', resources));
+    } catch (err: any) {
+      next(err);
+    }
+  };
 }
 
 export default new UserController();

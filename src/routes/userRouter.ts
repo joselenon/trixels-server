@@ -19,4 +19,6 @@ userRouter.get(
   UserController.getEthereumDepositWallet,
 );
 
+userRouter.get(URLS.ENDPOINTS.USER.GET_USER_RESOURCES, UserController.getUserResources);
+
 export default userRouter;
