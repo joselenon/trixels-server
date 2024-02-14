@@ -1,211 +1,213 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { NextFunction, Request, Response } from 'express';
-import { responseBody } from '../helpers/responseHelpers';
-import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
+import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { FirebaseInstance, RedisInstance } from '..';
-import { AuthError, GenericError } from '../config/errors/classes/ClientErrors';
+import { AuthError } from '../config/errors/classes/ClientErrors';
 import {
-  IResourceInfoCreationPayload,
   IUserResourceFirebase,
-  IUserResourcesRedis,
-} from '../config/interfaces/IUserResources';
-import JWTService from '../services/JWTService';
+  IUserResourceFrontEnd,
+  IUserResourceResponse,
+  IUsersResourcesRedis,
+} from '../config/interfaces/IResources';
+import { IUser } from '../config/interfaces/IUser';
 
-class ManageResourcesController {
-  get = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization;
-      if (!token) throw new AuthError();
+const redisResourcesKey = `resources`;
 
-      const tokenValue = JWTService.validateJWT(token.split('Bearer ')[1]);
-      /* const userId = tokenValue.userDocId; */
-      const userId = '7ulTdNnojgJV0mAf52cP';
-
-      const userInDb = await FirebaseInstance.getDocumentById('users', userId);
-
-      if (!userInDb) throw new AuthError();
-
-      const redisKey = `resources:${userId}`;
-      const userRef = (await FirebaseInstance.getDocumentRef('users', userInDb.docId))
-        .result;
-      const userResourcesRedis = await RedisInstance.get<IUserResourcesRedis>(redisKey, {
-        isJSON: true,
-      });
-
-      const getUserResourcesFromFirebase = async () => {
-        const userResources =
-          await FirebaseInstance.getManyDocumentsByParam<IUserResourceFirebase>(
-            'usersResources',
-            'userRef',
-            userRef,
-          );
-
-        return userResources;
-      };
-
-      if (!userResourcesRedis) {
-        const resourcesFromDb = await getUserResourcesFromFirebase();
-
-        if (resourcesFromDb) {
-          const redisObj: IUserResourcesRedis = {};
-
-          resourcesFromDb.forEach((resourceDoc) => {
-            const { landNumber, resourceName } = resourceDoc.result;
-
-            redisObj[resourceDoc.docId as keyof IUserResourcesRedis] = {
-              landNumber,
-              resourceName,
-            };
-          });
-
-          await RedisInstance.set(redisKey, redisObj);
-          return res.status(200).json(responseBody(true, 'GET_MSG', redisObj));
-        } else {
-          return res.status(200).json(responseBody(true, 'GET_MSG', {}));
-        }
-      }
-
-      return res.status(200).json(responseBody(true, 'GET_MSG', userResourcesRedis));
-    } catch (err) {
-      return next(err);
-    }
+class UserResourcesService {
+  initialize = async () => {
+    await RedisInstance.set(redisResourcesKey, { initial: [] }, { isJSON: true });
   };
 
-  put = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization;
-      if (!token) throw new AuthError();
+  createUserResourcesRegistryInRedis = async (
+    userRef: FirebaseFirestore.DocumentReference<
+      FirebaseFirestore.DocumentData,
+      FirebaseFirestore.DocumentData
+    >,
+    username: string,
+  ) => {
+    const usersResourcesRedis = await RedisInstance.get<IUsersResourcesRedis>(
+      redisResourcesKey,
+      { isJSON: true },
+    );
 
-      const tokenValue = JWTService.validateJWT(token);
-      /* const userId = tokenValue.userDocId; */
-      const userId = '7ulTdNnojgJV0mAf52cP';
+    const getUserResourcesFromFirebase = async () => {
+      const userResources =
+        await FirebaseInstance.getSingleDocumentByParam<IUserResourceFirebase>(
+          'usersResources',
+          'userRef',
+          userRef,
+        );
 
-      const data = req.body as { startTime: number };
-      const { resourceId } = req.query;
+      return userResources;
+    };
 
-      if (!resourceId) throw new GenericError();
+    const userResourcesFromDb = await getUserResourcesFromFirebase();
+    const userResources = userResourcesFromDb?.result.resources;
 
-      const userResourcesRedis = await RedisInstance.get<IUserResourcesRedis>(
-        `resources:${userId}`,
-        {
-          isJSON: true,
+    if (userResources && userResources.length > 0) {
+      const userResourcesFiltered: IUserResourceFrontEnd[] = userResources.filter(
+        (resource) => {
+          if (resource.account && resource.landNumber && resource.resourceType) {
+            return resource;
+          }
         },
       );
 
-      if (userResourcesRedis && userResourcesRedis[resourceId as string]) {
-        const selectedResource = userResourcesRedis[resourceId as string];
-        const updatedResource = { ...selectedResource, ...data };
+      const updateObj: IUsersResourcesRedis = {
+        ...usersResourcesRedis,
+        [username]: userResourcesFiltered,
+      };
 
-        await RedisInstance.set(
-          `resources:${userId}`,
-          { ...userResourcesRedis, [resourceId as string]: { ...updatedResource } },
-          { isJSON: true },
-        );
-      }
+      await RedisInstance.set(redisResourcesKey, updateObj, { isJSON: true });
 
-      return res.status(200).json(responseBody(true, 'GENERIC_MSG', null));
-    } catch (err) {
-      next(err);
+      return userResources;
+    } else {
+      return [];
     }
   };
 
-  post = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization;
-      if (!token) throw new AuthError();
+  getUserResources = async (userDocId: string): Promise<IUserResourceFrontEnd[]> => {
+    const userRefData = await FirebaseInstance.getDocumentRef<IUser>('users', userDocId);
+    if (!userRefData.docData) throw new AuthError();
 
-      const tokenValue = JWTService.validateJWT(token.split('Bearer ')[1]);
-      const userId = tokenValue.userDocId;
+    const userRef = userRefData.result;
+    const username = userRefData.docData.username;
 
-      const userRef = (await FirebaseInstance.getDocumentRef('users', userId)).result;
+    const usersResourcesRedis = await RedisInstance.get<IUsersResourcesRedis>(
+      redisResourcesKey,
+      { isJSON: true },
+    );
 
-      const data = req.body as { [resourceId: string]: IResourceInfoCreationPayload };
-
-      if (
-        data &&
-        typeof data.resourceName === 'string' &&
-        typeof data.landNumber === 'number' &&
-        typeof data.startTime === 'number'
-      ) {
-        const { landNumber, resourceName, startTime } = data;
-
-        /*         const resourceAlreadyExists = async () => {
-          const sameResourcesNameInDb =
-            await FirebaseInstance.getManyDocumentsByParam<IUserResourceFirebase>(
-              'usersResources',
-              'resourceName',
-              resourceName,
-            );
-          if (sameResourcesNameInDb) {
-            for (const resource of sameResourcesNameInDb) {
-              if (resource.result.landNumber === landNumber) {
-                return false;
-              }
-            }
-            return true;
-          } else {
-            return true;
-          }
-        }; */
-
-        const validateResourceInfo = async () => {
-          if (landNumber > 5000) throw new InvalidPayloadError();
-          /*           const alreadyExists = await resourceAlreadyExists(); */
-
-          if (
-            resourceName !== 'APIARY' &&
-            resourceName !== 'COOP' &&
-            resourceName !== 'MINE' &&
-            resourceName !== 'SPECIAL_MINE' &&
-            resourceName !== 'SLUGGER'
-            /* alreadyExists */
-          ) {
-            throw new InvalidPayloadError();
-          }
-
-          if (typeof startTime !== 'number') throw new InvalidPayloadError();
-        };
-
-        const createResourceInFirebase = async () => {
-          const resourceId = await FirebaseInstance.writeDocument('usersResources', {
-            landNumber,
-            resourceName,
-            userRef,
-          });
-
-          return resourceId;
-        };
-
-        const createResourceInRedis = async (resourceId: string) => {
-          const userResourcesAlreadyInRedis =
-            await RedisInstance.get<IUserResourcesRedis>(`resources:${userId}`, {
-              isJSON: true,
-            });
-
-          const newResource = { [resourceId]: { landNumber, resourceName, startTime } };
-
-          const userResourcesUpdatedRedis = {
-            ...userResourcesAlreadyInRedis,
-            ...newResource,
-          };
-
-          await RedisInstance.set(`resources:${userId}`, userResourcesUpdatedRedis, {
-            isJSON: true,
-          });
-        };
-
-        validateResourceInfo();
-        const resourceId = await createResourceInFirebase();
-        await createResourceInRedis(resourceId);
-
-        res.status(200).json(responseBody(true, 'GENERIC_MSG', null));
-      } else {
-        throw new InvalidPayloadError();
-      }
-    } catch (err) {
-      next(err);
+    if (!usersResourcesRedis) {
+      throw new UnknownError("userResourcesService didn't initialize");
     }
+
+    if (!usersResourcesRedis[username]) {
+      await this.createUserResourcesRegistryInRedis(userRef, username);
+      return [];
+    }
+
+    return usersResourcesRedis[username];
+  };
+
+  updateUserResource = async (
+    username: string,
+    payload: IUserResourceFrontEnd,
+  ): Promise<IUserResourceResponse> => {
+    const usersResourcesRedis = await RedisInstance.get<IUsersResourcesRedis>(
+      redisResourcesKey,
+      { isJSON: true },
+    );
+
+    if (!usersResourcesRedis) {
+      throw new UnknownError("userResourcesService didn't initialize");
+    }
+
+    if (!usersResourcesRedis[username]) {
+      throw new UnknownError('user noT IN RESOURCES REDIS');
+    }
+
+    const userResources = usersResourcesRedis[username];
+
+    const { landNumber, resourceType, account } = payload;
+    const findResource = () => {
+      const resourceFound = userResources.filter(
+        (resource) =>
+          resource.landNumber === landNumber &&
+          resource.resourceType === resourceType &&
+          resource.account === account,
+      );
+      if (resourceFound.length <= 0) throw new UnknownError('RESOURCE NOT FOUND');
+
+      return resourceFound[0];
+    };
+
+    const resourceToUpdate = findResource();
+    const updatedResource = { ...resourceToUpdate, ...payload };
+
+    const userResourcesWithoutUpdatedResource = userResources.filter((resource) => {
+      if (
+        resource.account === account &&
+        resource.landNumber === landNumber &&
+        resource.resourceType === resourceType
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const userResourcesToUpdate = [
+      ...userResourcesWithoutUpdatedResource,
+      updatedResource,
+    ];
+
+    await RedisInstance.set(
+      redisResourcesKey,
+      { ...usersResourcesRedis, [username]: userResourcesToUpdate },
+      { isJSON: true },
+    );
+
+    return { [username]: { ...userResources, ...updatedResource } };
+  };
+
+  creatUserResource = async (
+    userDocId: string,
+    username: string,
+    payload: IUserResourceFrontEnd,
+  ) => {
+    const usersResources =
+      await RedisInstance.get<IUsersResourcesRedis>(redisResourcesKey);
+    const userResources = await this.getUserResources(userDocId);
+
+    const userRef = await FirebaseInstance.getDocumentRef('users', userDocId);
+
+    const userResourcesDocId = await FirebaseInstance.getSingleDocumentByParam(
+      'usersResources',
+      'userRef',
+      userRef.result,
+    );
+
+    if (!userResourcesDocId) throw new UnknownError('userResourcesDocId not ofund.');
+
+    const { account, landNumber, resourceType, startTime } = payload;
+
+    userResources.forEach((resource) => {
+      if (
+        resource.account === account &&
+        resource.landNumber === landNumber &&
+        resource.resourceType === resourceType
+      )
+        throw new UnknownError('Resource already exists');
+    });
+
+    const addNewResourceInDb = async () => {
+      await FirebaseInstance.pushValueToKey(
+        'usersResources',
+        userResourcesDocId.docId,
+        'resources',
+        { account, landNumber, resourceType },
+      );
+    };
+
+    const addNewResourceInRedis = async () => {
+      const userResourcesToUpdate = [
+        ...userResources,
+        { account, landNumber, resourceType, startTime },
+      ];
+
+      const usersResourcesToUpdate = {
+        ...usersResources,
+        [username]: userResourcesToUpdate,
+      };
+
+      await RedisInstance.set(redisResourcesKey, usersResourcesToUpdate, {
+        isJSON: true,
+      });
+    };
+
+    addNewResourceInDb();
+    addNewResourceInRedis();
   };
 }
 
-export default new ManageResourcesController();
+export default new UserResourcesService();

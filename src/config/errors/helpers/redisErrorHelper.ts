@@ -9,7 +9,6 @@ async function retryOperation(
   const data = await fn();
   if (operation === 'get') {
     if (data && options?.isJSON) {
-      console.log('é json');
       throw new Error(`proposital json`);
       /*       return JSON.parse(data); */
     }
@@ -26,21 +25,16 @@ export default async function redisErrorHelper<T>(
   options: TRedisOptions | undefined,
   operation: TRedisCommands,
 ) {
-  console.log('iniciou');
   const maxRetries = 5;
   let retries = 0;
 
   while (retries < maxRetries) {
-    console.log('entrou', retries);
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const data: T = await retryOperation(fn, options, operation).catch(
-      (err) => {
-        if (data) return data;
-        retries++;
-        if (retries === maxRetries) throw new RedisError(err);
-        console.log('continuando');
-      },
-    );
+    const data: T = await retryOperation(fn, options, operation).catch((err) => {
+      if (data) return data;
+      retries++;
+      if (retries === maxRetries) throw new RedisError(err);
+    });
     return data;
   }
 }

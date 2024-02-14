@@ -10,6 +10,8 @@ import {
 import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
+import UserResourcesService from '../services/UserResourcesService';
+import { IUserResourceFrontEnd } from '../config/interfaces/IResources';
 
 class UserController {
   /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER */
@@ -83,6 +85,7 @@ class UserController {
         throw new UnknownError('getUserCredentials Error. No username to query');
       }
 
+      /* ARRUMAR '!' na volta do JWT */
       const usernameToQuery = usernameToQueryReceived ?? validatedJWT!.username;
 
       const userCredentials = await UserService.getUserCredentials(
@@ -148,8 +151,61 @@ class UserController {
 
       const { userDocId } = validatedJWT;
 
-      const resources = await UserService.getEthereumDepositWallet(userDocId);
+      const resources = await UserResourcesService.getUserResources(userDocId);
 
+      res.status(200).json(responseBody(true, 'GET_MSG', resources));
+    } catch (err: any) {
+      next(err);
+    }
+  };
+
+  createUserResource = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+
+      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
+      if (!validatedJWT) throw new AuthError();
+
+      const { userDocId, username } = validatedJWT;
+      const payload = req.body as IUserResourceFrontEnd;
+
+      if (
+        !payload.landNumber &&
+        !payload.resourceType &&
+        !payload.account &&
+        !payload.startTime
+      ) {
+        throw new InvalidPayloadError();
+      }
+
+      await UserResourcesService.creatUserResource(userDocId, username, payload);
+
+      res.status(200).json(responseBody(true, 'GET_MSG', null));
+    } catch (err: any) {
+      next(err);
+    }
+  };
+
+  updateUserResource = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.headers.authorization;
+
+      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
+      if (!validatedJWT) throw new AuthError();
+
+      const { username } = validatedJWT;
+      const payload = req.body as IUserResourceFrontEnd;
+
+      if (
+        !payload.landNumber &&
+        !payload.resourceType &&
+        !payload.account &&
+        !payload.startTime
+      ) {
+        throw new InvalidPayloadError();
+      }
+
+      const resources = await UserResourcesService.updateUserResource(username, payload);
       res.status(200).json(responseBody(true, 'GET_MSG', resources));
     } catch (err: any) {
       next(err);

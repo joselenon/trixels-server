@@ -20,5 +20,10 @@ userRouter.get(
 );
 
 userRouter.get(URLS.ENDPOINTS.USER.GET_USER_RESOURCES, UserController.getUserResources);
+userRouter.post(
+  URLS.ENDPOINTS.USER.GET_USER_RESOURCES,
+  UserController.createUserResource,
+);
+userRouter.put(URLS.ENDPOINTS.USER.GET_USER_RESOURCES, UserController.updateUserResource);
 
 export default userRouter;

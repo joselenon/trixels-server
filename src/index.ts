@@ -5,6 +5,7 @@ import ENVIRONMENT from './config/constants/ENVIRONMENT';
 import AppService from './services/AppService';
 import FirestoreService from './services/FirestoreService';
 import RedisService from './services/RedisService';
+import UserResourcesService from './services/UserResourcesService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -21,6 +22,7 @@ const RedisInstance = new RedisService(
 
 async function init() {
   await AppService.initialize();
+  await UserResourcesService.initialize();
 
   return { FirebaseInstance, RedisInstance };
 }

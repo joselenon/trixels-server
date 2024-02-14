@@ -17,6 +17,7 @@ export interface IUser {
     updatedAt: number;
   };
   createdAt: number;
+  accounts: string[];
 }
 
 export interface IUserJWTPayload {
@@ -39,6 +40,7 @@ export interface IUserToFrontEnd {
     value?: string;
   };
   createdAt: number;
+  accounts: string[];
 }
 
 export interface IUserControllerGQL {

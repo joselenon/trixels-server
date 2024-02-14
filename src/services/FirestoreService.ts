@@ -53,16 +53,25 @@ export default class FirestoreService {
   async updateDocument<R>(
     collection: TDBCollections,
     docId: string,
-    payload: any /* MUDAR ISSO IMEDIATAMENTE */,
+    payload: any,
   ): Promise<IFirebaseQueryResponse<R>> {
     try {
-      const docRef = await this.firestore.collection(collection).doc(docId);
+      const docRef = this.firestore.collection(collection).doc(docId);
       const docSnapshot = await docRef.get();
-      if (!docSnapshot.exists) throw new DocumentNotFoundError();
 
-      const docData = docSnapshot.data();
-      await docRef.update(payload);
-      return { docId, result: { ...docData, ...payload } as R };
+      if (!docSnapshot.exists) {
+        throw new DocumentNotFoundError();
+      }
+
+      await docRef.update({
+        ...payload,
+        updatedAt: new Date().getTime(),
+      });
+
+      const updatedDocSnapshot = await docRef.get();
+      const updatedDocData = updatedDocSnapshot.data();
+
+      return { docId, result: { ...updatedDocData } as R };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -179,6 +188,53 @@ export default class FirestoreService {
         return { docId: doc.id, docData: doc.data() as R };
       });
       return { result: collectionDocsData };
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async removeDocumentById(collection: TDBCollections, docId: string): Promise<void> {
+    try {
+      const docRef = this.firestore.collection(collection).doc(docId);
+      const docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        throw new DocumentNotFoundError();
+      }
+
+      await docRef.delete();
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async pushValueToKey<R>(
+    collection: TDBCollections,
+    docId: string,
+    key: string,
+    value: any,
+  ): Promise<IFirebaseQueryResponse<R>> {
+    try {
+      const docRef = this.firestore.collection(collection).doc(docId);
+      const docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        throw new DocumentNotFoundError();
+      }
+
+      const existingData = docSnapshot.data();
+      const existingArray = existingData[key] || []; // Se a chave não existir, assume um array vazio
+      existingArray.push(value);
+
+      await docRef.update({
+        [key]: existingArray,
+        updatedAt: new Date().getTime(),
+      });
+
+      const updatedDocSnapshot = await docRef.get();
+      const updatedDocData = updatedDocSnapshot.data();
+
+      return { docId, result: { ...updatedDocData } as R };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
