@@ -14,6 +14,7 @@ const RESPONSE_CONFIG = {
       Redis: 'Redis',
       Authorization: 'Authorization',
       Deposit: 'Deposit',
+      Game: 'Game',
       ExternalAPIs: 'External APIs',
       Register: 'Register',
       UserInfo: 'User Info',
@@ -41,6 +42,7 @@ const RESPONSE_CONFIG = {
       EMAIL_ALREADY_EXISTS: 'E-mail já existe',
       EMAIL_NOT_UPDATABLE: 'E-mail não pode ser atualizado',
       USER_NOT_FOUND: 'User not found',
+      INSUFFICIENT_BALANCE: 'Insufficient balance.',
     },
   },
 };

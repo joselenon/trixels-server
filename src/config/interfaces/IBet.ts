@@ -13,16 +13,31 @@ export interface IBetRedisCreate {
   createdAt: number;
 }
 
-export interface IBetDB {
-  amountBet: number;
-  amountReceived: number;
+export interface IBetInDB {
   createdAt: number;
-  gameId: string;
-  intervals: number[];
+  amountBet: number;
+  info: { randomTicket: boolean; ticket: number; type: 'raffles' | 'jackpots' };
+  prize: number;
+  gameRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
   userRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
 }
 
+export interface IBetToFrontEnd {
+  amountBet: number;
+  createdAt: number;
+  gameId: string;
+  info: { randomTicket: boolean; ticket: number; type: 'raffles' | 'jackpots' };
+  prize: number;
+  userRef: {
+    avatar: string;
+    username: string;
+    userId: string;
+  };
+}
+
+/* NOT UPDATED */
 // Difference between this and 'IBetRedisCreate' is that this one has docId (since it was created later)
+/*
 export interface IBetRedis {
   docId: string;
   intervals: number[];
@@ -31,3 +46,4 @@ export interface IBetRedis {
   gameId: string;
   userInfo: IUserJWTPayload;
 }
+ */

@@ -104,6 +104,7 @@ export default class FirestoreService {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
       const docSnapshot = await docRef.get();
+
       if (!docSnapshot.exists) return null;
 
       const docData = docSnapshot.data();

@@ -9,15 +9,13 @@ const MESSAGES = {
   ...RESPONSE_CONFIG.SUCCESS,
 };
 
-export const responseBody = <T>(
-  success: boolean,
-  message: TMessages,
-  data: T | null,
-) => ({
-  success: success,
-  message: MESSAGES[message],
-  data,
-});
+export const responseBody = <T>(success: boolean, message: TMessages, data: T) => {
+  return {
+    success: success,
+    message: MESSAGES[message],
+    data,
+  };
+};
 
 // Used at HTTP errors treatment middleware
 export const errorResponse = (message: string) => ({

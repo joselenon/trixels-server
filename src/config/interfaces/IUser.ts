@@ -15,6 +15,7 @@ export interface IUser {
     value?: string;
     lastWallet?: string;
     updatedAt: number;
+    verified: boolean;
   };
   createdAt: number;
 }
@@ -37,6 +38,7 @@ export interface IUserToFrontEnd {
   };
   roninWallet: {
     value?: string;
+    verified?: boolean;
   };
   createdAt: number;
 }

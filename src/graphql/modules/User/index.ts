@@ -15,7 +15,6 @@ const resolvers = {
         const { jwtPayload } = await validateAuth(jwtToken);
 
         const userData = await UserController.getUser(jwtPayload.userDocId);
-
         if (!userData) throw new DocumentNotFoundError();
 
         return responseBody(true, 'GET_MSG', userData.result);
@@ -56,7 +55,6 @@ const resolvers = {
             `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${jwtPayload.userDocId}`,
           ]);
         } catch (err) {
-          console.log('Erro aqui', err);
           validateAndCaptureError(err);
         }
       },

@@ -23,6 +23,7 @@ class JWTService implements IJWTService {
     return token;
   }
 
+  /* REFATORAR */
   validateJWT(args: {
     token: string | undefined;
     mustBeAuth: boolean;
@@ -31,16 +32,22 @@ class JWTService implements IJWTService {
     try {
       const { mustBeAuth, token } = args;
 
-      /* ARRUMAR ISSO. POR MAIS QUE NÃO PRECISE, É PRECISO AUTENTICAR QUEM ESTA FAZENDO A REQ. */
-      if (!mustBeAuth) return;
-      if (!token) throw new AuthError();
+      if (!token && mustBeAuth) throw new AuthError();
+      if (!token && !mustBeAuth) return;
 
       let filteredToken = token;
-      if (filteredToken.includes('Bearer')) {
-        filteredToken = token.split('Bearer ')[1];
+
+      if (filteredToken && filteredToken.includes('Bearer')) {
+        filteredToken = filteredToken.split('Bearer ')[1];
+      }
+
+      if (!filteredToken) {
+        if (mustBeAuth) throw new AuthError();
+        return;
       }
 
       const validated = jwt.verify(filteredToken, JWTConfig.secret);
+
       if (!validated && mustBeAuth) throw new AuthError();
 
       return validated as IUserJWTPayload;

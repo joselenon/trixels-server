@@ -7,10 +7,7 @@ export type TPubSubEvents =
   | 'GET_REDIS_JACKPOT'
   | 'GET_LIVE_LAST_JACKPOTS';
 
-export type TActionKeys =
-  | 'getLiveBalance'
-  | 'getLiveJackpot'
-  | 'getLiveLastJackpots';
+export type TActionKeys = 'getLiveBalance' | 'getLiveJackpot' | 'getLiveLastJackpots';
 
 const PUBSUB_EVENTS = {
   GET_LIVE_BALANCE: { private: true, triggerName: 'GET_LIVE_BALANCE' },

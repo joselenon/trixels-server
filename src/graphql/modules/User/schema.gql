@@ -1,28 +1,44 @@
+type User {
+  username: String
+  avatar: String
+  balance: Float
+  email: IEmail!
+  roninWallet: RoninWalletInfo
+  createdAt: Int
+}
+
+type UserToFrontEnd {
+  username: String
+  avatar: String
+  balance: Float
+  email: IEmail
+  roninWallet: RoninWalletInfo
+  createdAt: Int
+}
+
 type IEmail {
+  value: String
+  verified: Boolean
   lastEmail: String
   updatedAt: Float
+}
+
+type RoninWalletInfo {
   value: String
   verified: Boolean
 }
 
-type UserData {
-  username: String
-  steamid: String
-  avatar: String
-  balance: Float
-  tradeLink: String
-  email: IEmail
-}
-type User {
+type UserResponse {
   success: Boolean!
   message: String!
-  data: UserData
+  data: User
 }
 
 type BalanceData {
-  balance: Int
+  balance: Float
 }
-type Balance {
+
+type BalanceResponse {
   success: Boolean!
   message: String!
   data: BalanceData!
@@ -30,10 +46,10 @@ type Balance {
 
 
 type Query {
-  getUser(steamid: String): User!
-  getBalance: Balance!
+  getUser(steamid: String): UserResponse!
+  getBalance: BalanceResponse!
 }
 
 type Subscription {
-  getLiveBalance: Balance!
+  getLiveBalance: BalanceResponse!
 }

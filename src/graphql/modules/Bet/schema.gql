@@ -1,5 +1,22 @@
-type Bet {
-  id: Int
+type BetToFrontEnd {
+  amountBet: Float
+  createdAt: Int
+  gameId: String
+  info: BetInfo
+  prize: Float
+  userRef: BetterInfo
+}
+
+type BetInfo {
+  randomTicket: Boolean
+  ticket: Int
+  type: String
+}
+
+type BetterInfo {
+  avatar: String
+  username: String
+  userId: String
 }
 
 input MakeBet {

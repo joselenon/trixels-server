@@ -9,9 +9,13 @@ export interface IFirebaseAllDocumentsByCollectionQueryResponse<R> {
 }
 
 // Custom (modify when needed)
+export type TDBGamesCollections = 'raffles' | 'jackpots';
+
 export type TDBCollections =
   | 'users'
-  | 'multiesRefs'
+  | 'multies'
   | 'transactions'
   | 'bets'
+  | 'raffles'
+  | 'jackpots'
   | 'ethereumDepositWallets';

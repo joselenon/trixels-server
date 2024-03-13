@@ -51,6 +51,7 @@ class UserService {
         roninWallet: {
           value: '',
           lastWallet: '',
+          verified: false,
           updatedAt: nowTime,
         },
         createdAt: nowTime,
@@ -74,19 +75,19 @@ class UserService {
     const isSameUser = userQueryingIsUserLogged;
 
     const filteredWallet = () => {
-      if (!roninWallet.value) return undefined;
+      if (!roninWallet.value) return { value: undefined };
 
       if (isSameUser) {
-        return roninWallet.value;
+        return { value: roninWallet.value, verified: roninWallet.verified };
       } else {
-        return cutWalletAddress(roninWallet.value);
+        return { value: cutWalletAddress(roninWallet.value) };
       }
     };
 
     return {
       username,
       avatar,
-      roninWallet: { value: filteredWallet() },
+      roninWallet: filteredWallet(),
       email: isSameUser ? email : undefined,
       balance: isSameUser ? balance : undefined,
       createdAt,
@@ -120,11 +121,10 @@ class UserService {
     };
   }
 
-  async getUserCredentials(
+  async getUserInDb(
     usernameLogged: string | undefined,
     usernameToQuery: string,
   ): Promise<IUserToFrontEnd> {
-    /* !!!CHECANDO SE EXISTE SOMENTE O USUARIO QUE ESTÁ SENDO PESQUISADO!!! */
     const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>(
       'users',
       'username',
@@ -168,6 +168,7 @@ class UserService {
         lastWallet: roninWallet.value,
         updatedAt: new Date().getTime(),
         value: payload.roninWallet,
+        verified: false,
       };
     }
 

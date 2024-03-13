@@ -1,0 +1,48 @@
+type RafflePrivacyInfo {
+  mode: String
+  type: String
+}
+
+type RaffleWinnersBetsInfo {
+  betRef: BetToFrontEnd
+  hash: String
+}
+
+type RaffleToFrontEndInfo {
+  bets: [BetToFrontEnd]!
+  ticketPrice: Float!
+  totalTickets: Int!
+  totalPrizesValue: Float!
+  privacy: RafflePrivacyInfo!
+  prizes: String!
+  winnersBets: [RaffleWinnersBetsInfo]
+}
+
+type WinnerBetInfo {
+  betRef: BetToFrontEnd
+  hash: String
+}
+
+type RaffleToFrontEnd {
+  gameId: String!
+  createdAt: String!
+  finishedAt: String
+  type: String!
+  info: RaffleToFrontEndInfo!
+}
+
+type GetRafflesResponseData {
+  activeRaffles: [RaffleToFrontEnd]!
+  endedRaffles: [RaffleToFrontEnd]!
+}
+
+type RaffleResponse {
+  success: Boolean!
+  message: String!
+  data: GetRafflesResponseData!
+}
+
+type Query {
+  getRaffles: RaffleResponse!
+}
+

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
-import { InvalidPayloadError, UnknownError } from '../config/errors/classes/SystemErrors';
+import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import UserValidator from '../services/UserValidations/UserValidator';
 import {
   AuthError,
@@ -69,25 +69,24 @@ class UserController {
     }
   };
 
-  getUserCredentials = async (req: Request, res: Response, next: NextFunction) => {
+  getUserInfo = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const usernameToQueryReceived = req.query.username as string | undefined;
       const token = req.headers.authorization;
-
       const validatedJWT = JWTService.validateJWT({
         token,
-        mustBeAuth: true,
+        mustBeAuth: false,
       });
 
-      if (!usernameToQueryReceived && !validatedJWT) {
-        throw new UnknownError('getUserCredentials Error. No username to query');
+      const usernameToQuery = req.query.username as string;
+      const requesterUsername = validatedJWT?.username;
+
+      if (!usernameToQuery && !requesterUsername) {
+        throw new InvalidPayloadError();
       }
 
-      const usernameToQuery = usernameToQueryReceived ?? validatedJWT!.username;
-
-      const userCredentials = await UserService.getUserCredentials(
-        validatedJWT && validatedJWT.username,
-        usernameToQuery,
+      const userCredentials = await UserService.getUserInDb(
+        requesterUsername,
+        usernameToQuery || requesterUsername!,
       );
 
       res

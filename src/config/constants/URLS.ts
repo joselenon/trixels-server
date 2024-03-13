@@ -18,6 +18,7 @@ const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
 const ENDPOINTS = {
   AUTH: '/auth',
   USER: '/user',
+  RAFFLES: '/raffles',
   GRAPHQL: '/graphql',
 };
 
@@ -31,9 +32,14 @@ const API_ENDPOINTS = {
     LOGIN: `${ENDPOINTS.AUTH}/login`,
   },
   USER: {
-    GET_USER_CREDENTIALS: `${ENDPOINTS.USER}`,
-    UPDATE_USER_CREDENTIALS: `${ENDPOINTS.USER}`,
+    GET_USER_INFO: `${ENDPOINTS.USER}`,
+    GET_USER_CREDENTIALS: `${ENDPOINTS.USER}/credentials`,
+    UPDATE_USER_CREDENTIALS: `${ENDPOINTS.USER}/credentials`,
     GET_ETHEREUM_DEPOSIT_WALLET: `${ENDPOINTS.USER}/depositwallet`,
+  },
+  RAFFLES: {
+    GET_AVAILABLE_ITEMS: `${ENDPOINTS.RAFFLES}/items`,
+    CREATE_RAFFLE: `${ENDPOINTS.RAFFLES}/create`,
   },
   GRAPHQL: `${ENDPOINTS.GRAPHQL}`,
 };
