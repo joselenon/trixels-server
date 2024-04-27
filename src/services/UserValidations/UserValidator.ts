@@ -10,14 +10,10 @@ import { IUser } from '../../config/interfaces/IUser';
 type UsersReferences = admin.firestore.DocumentReference<admin.firestore.DocumentData>[];
 
 class UserValidator {
-  async processMultiAccounting(userInfo: {
-    userId: string;
-    email?: string;
-    ronin_wallet?: string;
-  }) {
+  async processMultiAccounting(userInfo: { userId: string; email?: string; ronin_wallet?: string }) {
     const { userId, ronin_wallet, email } = userInfo;
 
-    const userRef = (await FirebaseInstance.getDocumentRef('users', userId)).result;
+    const userRef = (await FirebaseInstance.getDocumentRefWithData('users', userId)).result;
 
     const usersEncountered: { email: UsersReferences; ronin_wallet: UsersReferences } = {
       email: [],
@@ -25,16 +21,12 @@ class UserValidator {
     };
 
     if (email) {
-      const usersEncounteredByEmail =
-        await FirebaseInstance.getManyDocumentsByParam<IUser>('users', 'email', email);
+      const usersEncounteredByEmail = await FirebaseInstance.getManyDocumentsByParam<IUser>('users', 'email', email);
 
       if (usersEncounteredByEmail) {
         for (const user of usersEncounteredByEmail) {
           const pushUser = async () => {
-            const getRef = await FirebaseInstance.getDocumentRef<IUser>(
-              'users',
-              user.docId,
-            );
+            const getRef = await FirebaseInstance.getDocumentRefWithData<IUser>('users', user.docId);
 
             usersEncountered.email.push(getRef.result);
           };
@@ -45,20 +37,16 @@ class UserValidator {
     }
 
     if (ronin_wallet) {
-      const usersEncounteredByRoninWallet =
-        await FirebaseInstance.getManyDocumentsByParam<IUser>(
-          'users',
-          'ronin_wallet',
-          ronin_wallet,
-        );
+      const usersEncounteredByRoninWallet = await FirebaseInstance.getManyDocumentsByParam<IUser>(
+        'users',
+        'ronin_wallet',
+        ronin_wallet,
+      );
 
       if (usersEncounteredByRoninWallet) {
         for (const user of usersEncounteredByRoninWallet) {
           const pushUser = async () => {
-            const getRef = await FirebaseInstance.getDocumentRef<IUser>(
-              'users',
-              user.docId,
-            );
+            const getRef = await FirebaseInstance.getDocumentRefWithData<IUser>('users', user.docId);
 
             usersEncountered.ronin_wallet.push(getRef.result);
           };
@@ -79,11 +67,7 @@ class UserValidator {
   }
 
   async isUsernameAvailable(username: string) {
-    const userInDb = await FirebaseInstance.getSingleDocumentByParam(
-      'users',
-      'username',
-      username,
-    );
+    const userInDb = await FirebaseInstance.getSingleDocumentByParam('users', 'username', username);
 
     if (userInDb?.result) {
       return false;

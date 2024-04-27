@@ -3,10 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import UserValidator from '../services/UserValidations/UserValidator';
-import {
-  AuthError,
-  EmailAlreadyExistsError,
-} from '../config/errors/classes/ClientErrors';
+import { AuthError, EmailAlreadyExistsError } from '../config/errors/classes/ClientErrors';
 import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
@@ -35,9 +32,7 @@ class UserController {
       });
       const genJWT = JWTService.signJWT({ username, userDocId: userCreatedId });
 
-      res
-        .status(200)
-        .json(responseBody(true, 'LOGGED_IN', { userCredentials, token: genJWT }));
+      res.status(200).json(responseBody(true, 'REGISTER_USER', 'REGISTERED_IN', { userCredentials, token: genJWT }));
     } catch (err) {
       next(err);
     }
@@ -61,9 +56,7 @@ class UserController {
 
       const genJWT = JWTService.signJWT({ username, userDocId: userId });
 
-      res
-        .status(200)
-        .json(responseBody(true, 'LOGGED_IN', { userCredentials, token: genJWT }));
+      res.status(200).json(responseBody(true, 'LOG_USER', 'LOGGED_IN', { userCredentials, token: genJWT }));
     } catch (err) {
       next(err);
     }
@@ -84,14 +77,9 @@ class UserController {
         throw new InvalidPayloadError();
       }
 
-      const userCredentials = await UserService.getUserInDb(
-        requesterUsername,
-        usernameToQuery || requesterUsername!,
-      );
+      const userCredentials = await UserService.getUserInDb(requesterUsername, usernameToQuery || requesterUsername!);
 
-      res
-        .status(200)
-        .json(responseBody<IUserToFrontEnd>(true, 'GET_MSG', userCredentials));
+      res.status(200).json(responseBody<IUserToFrontEnd>(true, 'GET_USER_INFO', 'GET_MSG', userCredentials));
     } catch (err) {
       next(err);
     }
@@ -115,25 +103,8 @@ class UserController {
 
       await UserService.updateUserCredentials(username, filteredPayload);
 
-      res.status(200).json(responseBody(true, 'UPDATE_MSG', null));
+      res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', null));
     } catch (err) {
-      next(err);
-    }
-  };
-
-  getEthereumDepositWallet = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization;
-
-      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
-      if (!validatedJWT) throw new AuthError();
-
-      const { userDocId } = validatedJWT;
-
-      const ETHWalletAddress = await UserService.getEthereumDepositWallet(userDocId);
-
-      res.status(200).json(responseBody(true, 'GET_MSG', ETHWalletAddress));
-    } catch (err: any) {
       next(err);
     }
   };

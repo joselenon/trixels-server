@@ -34,9 +34,7 @@ export class UnexpectedDatabaseError extends DatabaseError {
 }
 
 export class DocumentNotFoundError extends DatabaseError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.DOCUMENT_NOT_IN_DB_MSG,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.DOCUMENT_NOT_IN_DB_MSG) {
     super(message);
   }
 }
@@ -66,14 +64,8 @@ export class RegisterError extends SystemError {
 }
 
 export class EnvVariablesMissingError extends SystemError {
-  constructor(
-    variables: string[],
-    message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.ENV_VARIABLES_MISSING,
-  ) {
-    super(
-      `${message}${variables.join(', ')}`,
-      RESPONSE_CONFIG.ERROR.TYPES.EnvVariablesMissing,
-    );
+  constructor(variables: string[], message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.ENV_VARIABLES_MISSING) {
+    super(`${message}${variables.join(', ')}`, RESPONSE_CONFIG.ERROR.TYPES.EnvVariablesMissing);
   }
 }
 

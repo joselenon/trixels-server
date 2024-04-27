@@ -4,11 +4,9 @@ import RafflesController from '../controllers/RafflesController';
 
 const rafflesRouter = Router();
 
-rafflesRouter.get(
-  URLS.ENDPOINTS.RAFFLES.GET_AVAILABLE_ITEMS,
-  RafflesController.getAvailableItems,
-);
+rafflesRouter.get(URLS.ENDPOINTS.RAFFLES.GET_AVAILABLE_ITEMS, RafflesController.getAvailableItems);
 
 rafflesRouter.post(URLS.ENDPOINTS.RAFFLES.CREATE_RAFFLE, RafflesController.createRaffle);
+rafflesRouter.post(URLS.ENDPOINTS.RAFFLES.BUY_TICKETS, RafflesController.addRaffleTicketBuyToQueue);
 
 export default rafflesRouter;

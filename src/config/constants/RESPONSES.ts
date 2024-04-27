@@ -1,9 +1,12 @@
 const RESPONSE_CONFIG = {
   SUCCESS: {
     GET_MSG: 'Data received successfully',
+    RAFFLE_CREATION_SUCCESS: 'Your raffle was created!',
     UPDATE_MSG: 'Data updated successfully',
     REDEEM_CODE_MSG: 'Code redeemed successfully',
+    REGISTERED_IN: "You're now registered",
     LOGGED_IN: "You're now logged",
+    TICKET_BUY_SUCCESS: "You're now in!",
   },
 
   ERROR: {
@@ -43,6 +46,9 @@ const RESPONSE_CONFIG = {
       EMAIL_NOT_UPDATABLE: 'E-mail não pode ser atualizado',
       USER_NOT_FOUND: 'User not found',
       INSUFFICIENT_BALANCE: 'Insufficient balance.',
+      GAME_ALREADY_FINISHED: 'Game already finished.',
+      TICKET_ALREADY_TAKEN: 'Ticket already taken',
+      QUANTITY_EXCEEDS_AVAILABLE_TICKETS: 'Quantity exceeds available tickets.',
     },
   },
 };

@@ -6,14 +6,6 @@ const userRouter = Router();
 
 userRouter.get(URLS.ENDPOINTS.USER.GET_USER_INFO, UserController.getUserInfo);
 
-userRouter.put(
-  URLS.ENDPOINTS.USER.UPDATE_USER_CREDENTIALS,
-  UserController.updateUserCredentials,
-);
-
-userRouter.get(
-  URLS.ENDPOINTS.USER.GET_ETHEREUM_DEPOSIT_WALLET,
-  UserController.getEthereumDepositWallet,
-);
+userRouter.put(URLS.ENDPOINTS.USER.UPDATE_USER_CREDENTIALS, UserController.updateUserCredentials);
 
 export default userRouter;

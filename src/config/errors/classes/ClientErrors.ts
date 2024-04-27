@@ -1,5 +1,11 @@
 // Errors occurred because of unauthorized or invalid requests by the user (shared with client)
+import PubSubEventManager from '../../../services/PubSubEventManager';
 import { RESPONSE_CONFIG } from '../../constants/RESPONSES';
+
+export interface IPubSubConfig {
+  userId: string;
+  reqType: 'CREATE_RAFFLE';
+}
 
 export abstract class ClientError extends Error {
   private status: number;
@@ -34,17 +40,13 @@ export class AuthError extends ClientError {
 }
 
 export class InvalidUsername extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_USERNAME,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_USERNAME) {
     super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }
 
 export class InvalidPassword extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_PASSWORD,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_PASSWORD) {
     super(401, message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }
@@ -56,17 +58,13 @@ export class JWTExpiredError extends ClientError {
 }
 
 export class UsernameAlreadyExistsError extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.USERNAME_ALREADY_EXISTS,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.USERNAME_ALREADY_EXISTS) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.UserInfo);
   }
 }
 
 export class EmailAlreadyExistsError extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.EMAIL_ALREADY_EXISTS,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.EMAIL_ALREADY_EXISTS) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.UserInfo);
   }
 }
@@ -84,25 +82,94 @@ export class CodeNotFound extends ClientError {
 }
 
 export class CodeUsageLimitError extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_USAGE_LIMIT,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_USAGE_LIMIT) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Deposit);
   }
 }
 
 export class CodeAlreadyUsed extends ClientError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_ALREADY_USED,
-  ) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_ALREADY_USED) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Deposit);
   }
 }
 
 export class InsufficientBalanceError extends ClientError {
   constructor(
+    pubSubConfig: IPubSubConfig,
     message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INSUFFICIENT_BALANCE,
   ) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Game);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'INSUFFICIENT_BALANCE',
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
+  }
+}
+
+export class GameAlreadyFinished extends ClientError {
+  constructor(
+    pubSubConfig: IPubSubConfig,
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GAME_ALREADY_FINISHED,
+  ) {
+    super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Game);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'GAME_ALREADY_FINISHED',
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
+  }
+}
+
+export class TicketAlreadyTaken extends ClientError {
+  constructor(
+    ticketsNumbers: number[],
+    pubSubConfig: IPubSubConfig,
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.TICKET_ALREADY_TAKEN,
+  ) {
+    super(400, `${message}: ${ticketsNumbers}`, RESPONSE_CONFIG.ERROR.TYPES.Game);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'TICKET_ALREADY_TAKEN',
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
+  }
+}
+
+export class QuantityExceedsAvailableTickets extends ClientError {
+  constructor(
+    pubSubConfig: IPubSubConfig,
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.QUANTITY_EXCEEDS_AVAILABLE_TICKETS,
+  ) {
+    super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Game);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'QUANTITY_EXCEEDS_AVAILABLE_TICKETS',
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
   }
 }

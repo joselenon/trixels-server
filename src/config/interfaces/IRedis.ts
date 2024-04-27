@@ -1,12 +1,4 @@
-export type TRedisCommands =
-  | 'del'
-  | 'get'
-  | 'set'
-  | 'lpush'
-  | 'rpush'
-  | 'lrange'
-  | 'lpop'
-  | 'rpop';
+export type TRedisCommands = 'del' | 'get' | 'set' | 'lpush' | 'rpush' | 'lrange' | 'lpop' | 'rpop' | 'flushall';
 
 export type TRedisOptions = { isJSON: boolean };
 

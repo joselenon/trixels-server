@@ -5,11 +5,7 @@ import { IUser } from '../config/interfaces/IUser';
 const checkIfUsernameExists = async (
   username: string,
 ): Promise<{ userExists: boolean; data: IFirebaseQueryResponse<IUser> } | false> => {
-  const userExists = await FirebaseInstance.getSingleDocumentByParam<IUser>(
-    'users',
-    'username',
-    username,
-  );
+  const userExists = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', username);
 
   if (userExists) {
     return { userExists: !!userExists.result, data: userExists };
@@ -20,7 +16,7 @@ const checkIfUsernameExists = async (
 
 // If user is not found in DB, it throw an error (DocumentNotFoundError)
 const checkIfUserExistsByDocId = async (userDocId: string) => {
-  const userExists = await FirebaseInstance.getDocumentRef<IUser>('users', userDocId);
+  const userExists = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
   return userExists;
 };
 

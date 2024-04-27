@@ -6,16 +6,17 @@ type RafflePrivacyInfo {
 type RaffleWinnersBetsInfo {
   betRef: BetToFrontEnd
   hash: String
+  drawnNumber: Int
 }
 
 type RaffleToFrontEndInfo {
   bets: [BetToFrontEnd]!
   ticketPrice: Float!
   totalTickets: Int!
-  totalPrizesValue: Float!
+  prizesTotalValue: Float!
   privacy: RafflePrivacyInfo!
   prizes: String!
-  winnersBets: [RaffleWinnersBetsInfo]
+  winnersBetsInfo: [RaffleWinnersBetsInfo]
 }
 
 type WinnerBetInfo {
@@ -28,6 +29,7 @@ type RaffleToFrontEnd {
   createdAt: String!
   finishedAt: String
   type: String!
+  description: String!
   info: RaffleToFrontEndInfo!
 }
 
@@ -42,7 +44,31 @@ type RaffleResponse {
   data: GetRafflesResponseData!
 }
 
+type BetToFrontEnd {
+  amountBet: Float
+  createdAt: String
+  gameId: String
+  info: BetInfo
+  prize: Float
+  userRef: BetterInfo
+}
+
+type BetInfo {
+  randomTicket: Boolean
+  tickets: [Int]!
+  type: String
+}
+
+type BetterInfo {
+  avatar: String
+  username: String
+  userId: String
+}
+
 type Query {
   getRaffles: RaffleResponse!
 }
 
+type Subscription {
+  getLiveRaffles: RaffleResponse!
+}

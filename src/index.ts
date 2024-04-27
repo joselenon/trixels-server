@@ -5,6 +5,8 @@ import ENVIRONMENT from './config/constants/ENVIRONMENT';
 import AppService from './services/AppService';
 import FirestoreService from './services/FirestoreService';
 import RedisService from './services/RedisService';
+import { RaffleUtils } from './services/RafflesServices';
+import BalanceUpdateService from './services/BalanceUpdateService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -17,9 +19,12 @@ const RedisInstance = new RedisService(
   ENVIRONMENT.REDIS_PASSWORD,
 );
 
-/* UpdateItemsListingsRedisService.itemsListingsAutoRefresh(); */
-
 async function init() {
+  await RedisInstance.flushAll();
+
+  BalanceUpdateService.startService();
+
+  await RaffleUtils.startRafflesServices();
   await AppService.initialize();
 
   return { FirebaseInstance, RedisInstance };

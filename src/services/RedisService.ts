@@ -36,11 +36,7 @@ export default class RedisService {
   }
 
   // Function responsible for "retry catches"
-  async retryWithBackoff<T>(
-    func: () => Promise<T>,
-    maxTries: number = 5,
-    delayMs: number = 2000,
-  ): Promise<T> {
+  async retryWithBackoff<T>(func: () => Promise<T>, maxTries: number = 5, delayMs: number = 2000): Promise<T> {
     let retryCount = 0;
 
     while (true) {
@@ -64,12 +60,7 @@ export default class RedisService {
     return data;
   }
 
-  async set(
-    key: TRedisKeys,
-    value: any,
-    options?: TRedisOptions,
-    expirationInSeconds: number | null = null,
-  ) {
+  async set(key: TRedisKeys, value: any, options?: TRedisOptions, expirationInSeconds: number | null = null) {
     const syncSet = this.promisifyCommand('set');
 
     // args: key, value, EX (optional), expirationMs(optional)
@@ -107,7 +98,7 @@ export default class RedisService {
   }
 
   // Add element to the right of a list
-  async rPush(key: TRedisKeys, value: any, options?: TRedisOptions) {
+  async rPush<T>(key: TRedisKeys, value: T, options?: TRedisOptions) {
     const syncRPush = this.promisifyCommand('rpush');
 
     const args = [key, options?.isJSON ? JSON.stringify(value) : value];
@@ -118,10 +109,15 @@ export default class RedisService {
   }
 
   // Returns list of elements
-  async lRange<T>(key: TRedisKeys, options?: TRedisOptions): Promise<T[] | null> {
+  async lRange<T>(
+    key: TRedisKeys,
+    startEnd: { start: number; end: number },
+    options?: TRedisOptions,
+  ): Promise<T[] | null> {
     const syncLRange = this.promisifyCommand('lrange');
+    const { start, end } = startEnd;
 
-    const fn = async () => await syncLRange(key, 0, -1);
+    const fn = async () => await syncLRange(key, start, end);
     const data = await this.retryWithBackoff(fn);
 
     if (data && options?.isJSON) {
@@ -132,11 +128,7 @@ export default class RedisService {
   }
 
   // Removes and returns first element of the list
-  async lPop<T>(
-    key: TRedisKeys,
-    count: number,
-    options?: TRedisOptions,
-  ): Promise<T | null> {
+  async lPop<T>(key: TRedisKeys, count: number, options?: TRedisOptions): Promise<T | null> {
     const syncLPop = this.promisifyCommand('lpop');
 
     const fn = async () => await syncLPop(key, count);
@@ -150,11 +142,7 @@ export default class RedisService {
   }
 
   // Removes and returns last element of the list
-  async rPop<T>(
-    key: TRedisKeys,
-    count: number,
-    options?: TRedisOptions,
-  ): Promise<T | null> {
+  async rPop<T>(key: TRedisKeys, count: number, options?: TRedisOptions): Promise<T | null> {
     const syncRPop = this.promisifyCommand('rpop');
 
     const fn = async () => await syncRPop(key, count);
@@ -165,5 +153,11 @@ export default class RedisService {
     } else {
       return data;
     }
+  }
+
+  async flushAll() {
+    const syncFlushAll = this.promisifyCommand('flushall');
+    const fn = async () => await syncFlushAll();
+    await this.retryWithBackoff(fn);
   }
 }

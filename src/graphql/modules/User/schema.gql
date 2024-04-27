@@ -44,6 +44,12 @@ type BalanceResponse {
   data: BalanceData!
 }
 
+type MessagesResponse {
+  success: Boolean!
+  message: String!
+  type: String!
+  data: String!
+}
 
 type Query {
   getUser(steamid: String): UserResponse!
@@ -52,4 +58,5 @@ type Query {
 
 type Subscription {
   getLiveBalance: BalanceResponse!
+  getLiveMessages: MessagesResponse!
 }

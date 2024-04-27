@@ -1,13 +1,12 @@
 import ITransaction from '../config/interfaces/ITransaction';
 
 import getRedisKeyHelper from '../helpers/redisHelper';
-import pSubEventHelper from '../helpers/pSubEventHelper';
 import { FirebaseInstance, RedisInstance } from '..';
 import { IUser } from '../config/interfaces/IUser';
 import { IBetInDB } from '../config/interfaces/IBet';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
-import { RafflesService } from './RafflesService';
-import Decimal from 'decimal.js';
+import { InvalidUsername } from '../config/errors/classes/ClientErrors';
+import PubSubEventManager from './PubSubEventManager';
 
 class BalanceService {
   static async calculateTransactions(userRef: FirebaseFirestore.DocumentReference) {
@@ -36,18 +35,11 @@ class BalanceService {
   }
 
   static async calculateBets(userRef: FirebaseFirestore.DocumentReference) {
-    const userBets = await FirebaseInstance.getManyDocumentsByParam<IBetInDB>(
-      'bets',
-      'userRef',
-      userRef,
-    );
+    const userBets = await FirebaseInstance.getManyDocumentsByParam<IBetInDB>('bets', 'userRef', userRef);
     if (!userBets || userBets.length <= 0) return 0;
 
     const calc = userBets.reduce((acc, bet) => {
-      if (
-        typeof bet.result.amountBet !== 'number' ||
-        typeof bet.result.prize !== 'number'
-      ) {
+      if (typeof bet.result.amountBet !== 'number' || typeof bet.result.prize !== 'number') {
         throw new UnknownError('Invalid bet infos');
       }
 
@@ -62,8 +54,7 @@ class BalanceService {
 
   // Recalculate all the transactions and bets in order to update the balance (DB, Cache, Client???)
   static async hardUpdateBalances(userDocId: string) {
-    const userRef = (await FirebaseInstance.getDocumentRef<IUser>('users', userDocId))
-      .result;
+    const userRef = (await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId)).result;
 
     const balanceCalc = async () => {
       const calculateTransactions = await BalanceService.calculateTransactions(userRef);
@@ -84,51 +75,35 @@ class BalanceService {
     // Potential Errors: UnexpectedDatabaseError || RedisError
   }
 
-  // Function to display the balance (not trustable since if there's any value in cache, it will delivery it)
-  static async getBalance(userDocId: string): Promise<{ balance: number }> {
-    const cacheKey = getRedisKeyHelper('last_balance_att', userDocId);
-    const balance = await RedisInstance.get<{ balance: number }>(cacheKey, {
-      isJSON: true,
-    });
+  static async getUserBalance(userDocId: string): Promise<{ balance: number }> {
+    const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
+    if (!userInDb) throw new InvalidUsername();
 
-    return balance ? balance : await BalanceService.hardUpdateBalances(userDocId);
-    // Potential Errors: RedisError || UnexpectedDatabaseError
+    return { balance: userInDb.result.balance };
   }
 
-  // Do not recalculate all the transaction, only adds a value received to the in cache saved balance (Cache, Client)
-  static async softUpdateBalances(
-    userDocId: string,
-    { option, value }: { option: 'add' | 'remove'; value: number },
-  ) {
+  static sendBalancePubSubEvent(userDocId: string, balanceValue: number, sendInTimestamp?: number) {
     try {
-      const { balance } = await BalanceService.getBalance(userDocId);
-      let newBalance: { balance: number };
+      const updateBalance = async () => {
+        await PubSubEventManager.publishEvent(
+          'GET_LIVE_BALANCE',
+          { success: true, type: 'GET_LIVE_BALANCE', message: 'GET_MSG', data: { balance: balanceValue } },
+          userDocId,
+        );
+      };
 
-      /* DECIMAL Lib utilizada para decimais precisos */
-      const valueToChangerDECIMAL = new Decimal(value);
-      const balanceDECIMAL = new Decimal(balance);
+      if (sendInTimestamp) {
+        const nowTime = new Date().getTime();
+        const timeoutTime = sendInTimestamp - nowTime;
 
-      if (option === 'add') {
-        newBalance = { balance: balanceDECIMAL.plus(valueToChangerDECIMAL).toNumber() };
-      } else if (option === 'remove') {
-        newBalance = { balance: balanceDECIMAL.minus(valueToChangerDECIMAL).toNumber() };
+        setTimeout(updateBalance, timeoutTime > 0 ? timeoutTime : 0);
       } else {
-        throw new Error('Invalid option provided');
+        updateBalance();
       }
 
-      const cacheKey = getRedisKeyHelper('last_balance_att', userDocId);
-      await RedisInstance.set(cacheKey, newBalance, { isJSON: true });
-
-      pSubEventHelper(
-        'GET_LIVE_BALANCE',
-        'getLiveBalance',
-        { success: true, message: 'GET_MSG', data: newBalance },
-        userDocId,
-      );
-
-      return newBalance.balance;
+      return balanceValue;
     } catch (error) {
-      console.error('Error in softUpdateBalances:', error);
+      console.error('Error in sendBalancePubSubEvent:', error);
       throw error;
     }
   }

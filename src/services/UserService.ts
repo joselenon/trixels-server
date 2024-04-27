@@ -57,8 +57,8 @@ class UserService {
         createdAt: nowTime,
       };
 
-      const userCreatedId = await FirebaseInstance.writeDocument('users', userInDbObj);
-      return { userCredentials: userInDbObj, userCreatedId };
+      const { docId } = await FirebaseInstance.writeDocument('users', userInDbObj);
+      return { userCredentials: userInDbObj, userCreatedId: docId };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -94,13 +94,7 @@ class UserService {
     };
   }
 
-  async loginUser({
-    username,
-    password,
-  }: {
-    username: string;
-    password: string;
-  }): Promise<{
+  async loginUser({ username, password }: { username: string; password: string }): Promise<{
     userCredentials: IUserToFrontEnd;
     userId: string;
   }> {
@@ -121,15 +115,8 @@ class UserService {
     };
   }
 
-  async getUserInDb(
-    usernameLogged: string | undefined,
-    usernameToQuery: string,
-  ): Promise<IUserToFrontEnd> {
-    const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>(
-      'users',
-      'username',
-      usernameToQuery,
-    );
+  async getUserInDb(usernameLogged: string | undefined, usernameToQuery: string): Promise<IUserToFrontEnd> {
+    const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', usernameToQuery);
     if (!userInDb) throw new UserNotFound();
 
     const isSameUser = usernameLogged === usernameToQuery;
@@ -140,15 +127,8 @@ class UserService {
     });
   }
 
-  async updateUserCredentials(
-    usernameLogged: string,
-    payload: IUpdateUserCredentialsPayload,
-  ) {
-    const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>(
-      'users',
-      'username',
-      usernameLogged,
-    );
+  async updateUserCredentials(usernameLogged: string, payload: IUpdateUserCredentialsPayload) {
+    const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', usernameLogged);
     if (!userInDb) throw new UserNotFound();
 
     const { email, roninWallet } = userInDb.result;
@@ -172,20 +152,14 @@ class UserService {
       };
     }
 
-    return await FirebaseInstance.updateDocument(
-      'users',
-      userInDb.docId,
-      filteredPayload,
-    );
+    return await FirebaseInstance.updateDocument('users', userInDb.docId, filteredPayload);
   }
 
   async createEthereumDepositWallet(userDocId: string) {
-    const userRef = await FirebaseInstance.getDocumentRef('users', userDocId);
+    const userRef = await FirebaseInstance.getDocumentRefWithData('users', userDocId);
 
     const randomWalletCreation = ethers.Wallet.createRandom();
-    const encryptedWallet = await randomWalletCreation.encrypt(
-      ENVIRONMENT.WALLETS_ENCRYPTION_KEY,
-    );
+    const encryptedWallet = await randomWalletCreation.encrypt(ENVIRONMENT.WALLETS_ENCRYPTION_KEY);
 
     const dbObj = {
       publicAddress: randomWalletCreation.address,
@@ -200,14 +174,13 @@ class UserService {
   }
 
   async getEthereumDepositWallet(userDocId: string) {
-    const userRef = (await FirebaseInstance.getDocumentRef('users', userDocId)).result;
+    const userRef = (await FirebaseInstance.getDocumentRefWithData('users', userDocId)).result;
 
-    const walletInDb =
-      await FirebaseInstance.getSingleDocumentByParam<IETHDepositWalletDb>(
-        'ethereumDepositWallets',
-        'userRef',
-        userRef,
-      );
+    const walletInDb = await FirebaseInstance.getSingleDocumentByParam<IETHDepositWalletDb>(
+      'ethereumDepositWallets',
+      'userRef',
+      userRef,
+    );
     if (!walletInDb) {
       return await this.createEthereumDepositWallet(userDocId);
     }

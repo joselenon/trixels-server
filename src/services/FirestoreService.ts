@@ -4,12 +4,10 @@ import * as admin from 'firebase-admin';
 import {
   IFirebaseAllDocumentsByCollectionQueryResponse,
   IFirebaseQueryResponse,
+  IFirebaseQueryResponseWithData,
   TDBCollections,
 } from '../config/interfaces/IFirebase';
-import {
-  DocumentNotFoundError,
-  UnexpectedDatabaseError,
-} from '../config/errors/classes/SystemErrors';
+import { DocumentNotFoundError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { firebaseApp } from '..';
 
 export default class FirestoreService {
@@ -22,10 +20,10 @@ export default class FirestoreService {
   async writeDocument<T extends admin.firestore.DocumentData>(
     collection: TDBCollections,
     payload: T,
-  ): Promise<string> {
+  ): Promise<{ docId: string; success: boolean }> {
     try {
       const docRef = await this.firestore.collection(collection).add(payload);
-      return docRef.id;
+      return { docId: docRef.id, success: true };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -70,15 +68,10 @@ export default class FirestoreService {
 
   // Specific query (if the document doesn't exists, it throws an error)
   // IMPORTANT: It throws error in case a docRef.get is requested with an nonexistent docId in db
-  async getDocumentRef<D>(
+  async getDocumentRefWithData<D>(
     collection: TDBCollections,
     docId: string,
-  ): Promise<
-    IFirebaseQueryResponse<
-      admin.firestore.DocumentReference<admin.firestore.DocumentData>,
-      D
-    >
-  > {
+  ): Promise<IFirebaseQueryResponseWithData<admin.firestore.DocumentReference<admin.firestore.DocumentData>, D>> {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
 
@@ -97,10 +90,26 @@ export default class FirestoreService {
     }
   }
 
-  async getDocumentById<R>(
+  async getDocumentRef(
     collection: TDBCollections,
     docId: string,
-  ): Promise<IFirebaseQueryResponse<R> | null> {
+  ): Promise<IFirebaseQueryResponse<admin.firestore.DocumentReference<admin.firestore.DocumentData>>> {
+    try {
+      const docRef = this.firestore.collection(collection).doc(docId);
+
+      const docSnapshot = await docRef.get();
+      if (!docSnapshot.exists) throw new DocumentNotFoundError();
+
+      return {
+        docId,
+        result: docRef,
+      };
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async getDocumentById<R>(collection: TDBCollections, docId: string): Promise<IFirebaseQueryResponse<R> | null> {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
       const docSnapshot = await docRef.get();
@@ -120,10 +129,7 @@ export default class FirestoreService {
     paramValue: string | admin.firestore.DocumentReference<admin.firestore.DocumentData>,
   ): Promise<IFirebaseQueryResponse<R> | null> {
     try {
-      const docRef = await this.firestore
-        .collection(collection)
-        .where(param, '==', paramValue)
-        .limit(1);
+      const docRef = await this.firestore.collection(collection).where(param, '==', paramValue).limit(1);
       const docSnapshot = await docRef.get();
       if (docSnapshot.empty) return null;
 
@@ -145,9 +151,7 @@ export default class FirestoreService {
     paramValue: string | any,
   ): Promise<IFirebaseQueryResponse<R>[] | null> {
     try {
-      const docRef = await this.firestore
-        .collection(collection)
-        .where(param, '==', paramValue);
+      const docRef = await this.firestore.collection(collection).where(param, '==', paramValue);
 
       const docSnapshot = (await docRef.get()).docs;
 
@@ -180,6 +184,46 @@ export default class FirestoreService {
         return { docId: doc.id, docData: doc.data() as R };
       });
       return { result: collectionDocsData };
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async pushToArrayProperty(collection: TDBCollections, docId: string, arrayField: string, value: any): Promise<void> {
+    try {
+      const docRef = this.firestore.collection(collection).doc(docId);
+
+      await this.firestore.runTransaction(async (transaction) => {
+        const doc = await transaction.get(docRef);
+        if (!doc.exists) {
+          throw new DocumentNotFoundError(`Document ${docId} not found`);
+        }
+
+        const docData = doc.data();
+        if (!docData) {
+          throw new UnexpectedDatabaseError(`Document ${docId} has no data`);
+        }
+
+        // Verificar se o campo é um array
+        if (!Array.isArray(docData[arrayField])) {
+          throw new UnexpectedDatabaseError(`Field ${arrayField} is not an array`);
+        }
+
+        // Adicionar o valor ao array
+        transaction.update(docRef, {
+          [arrayField]: admin.firestore.FieldValue.arrayUnion(value),
+        });
+      });
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async getCollectionRef(
+    collection: TDBCollections,
+  ): Promise<admin.firestore.CollectionReference<admin.firestore.DocumentData>> {
+    try {
+      return this.firestore.collection(collection);
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }

@@ -18,73 +18,64 @@ export type TRaffleWinnersPrizes = {
   [winnerX: string]: TRaffleWinnerPrizes;
 };
 
+export type TWinnerBetInRedis = {
+  betRef: IBetToFrontEnd;
+  hash: string;
+  drawnNumber: number;
+};
+
+export type TWinnerBetsInRedis = TWinnerBetInRedis[];
+
+export type TWinnerBetsInDb = {
+  betRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
+  hash: string;
+  drawnNumber: number;
+}[];
+
 export interface IRaffleInDb {
   createdAt: number;
   updatedAt: number;
   finishedAt?: number;
   type: 'raffles';
+  description: string;
   info: {
     bets: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>[];
     ticketPrice: number;
     totalTickets: number;
-    totalPrizesValue: number;
+    ticketsBought: number;
+    prizesTotalValue: number;
     privacy: {
       type: 'public' | 'private';
       mode: 'public' | 'guildMembers';
     };
 
     prizes: TRaffleWinnersPrizes;
-    winnersBets?: {
-      betRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
-      hash: string;
-    }[];
+    winnersBetsInfo?: TWinnerBetsInDb;
   };
 }
 
 export interface IRaffleToFrontEnd {
   gameId: string;
-  createdAt: number;
-  finishedAt?: number;
+  createdAt: string;
+  finishedAt?: string;
   type: 'raffles';
+  description: string;
   info: {
-    bets: IBetToFrontEnd[] /* DIFF */;
+    bets: IBetToFrontEnd[];
     ticketPrice: number;
     totalTickets: number;
-    totalPrizesValue: number;
+    ticketsBought: number;
+    prizesTotalValue: number;
     privacy: {
       mode: 'public' | 'guildMembers';
       type: 'public' | 'private';
     };
-
-    /* MUDADO PARA STRING (JSON) MOMENTANEAMENTE, DEVIDO A VARIABILIDADE DE QUANTIDADE DE PREMIOS - GRAPHQL */
-    prizes: string;
-
-    winnersBets?: {
-      betRef: IBetToFrontEnd /* DIFF */;
-      hash: string;
-    }[];
+    prizes: string /* MUDADO PARA STRING (JSON) MOMENTANEAMENTE, DEVIDO A VARIABILIDADE DE QUANTIDADE DE PREMIOS - GRAPHQL */;
+    winnersBetsInfo?: TWinnerBetsInRedis;
   };
 }
-/*  */
 
-/* RAFFLE CREATION INTERFACES */
-
-export type TRaffleCreationPrizeX = { prizeId: string; quantity: number };
-
-export type TRaffleCreationWinnerPrizes = {
-  info: { [prizeX: string]: TRaffleCreationPrizeX };
-};
-
-export type TRaffleCreationPrizesWinners = {
-  [winnerX: string]: TRaffleCreationWinnerPrizes;
-};
-
-export interface IRaffleCreationPayload {
-  totalTickets: number;
-  discountPercentage: number;
-  privacy: {
-    mode: 'public' | 'guildMembers';
-    type: 'public' | 'private';
-  };
-  prizes: TRaffleCreationPrizesWinners;
+export interface IRafflesInRedis {
+  activeRaffles: IRaffleToFrontEnd[];
+  endedRaffles: IRaffleToFrontEnd[];
 }

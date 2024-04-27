@@ -12,9 +12,7 @@ export interface IAuthValidation {
   userInfo: IUser;
 }
 
-const validateAuth: TValidateAuthFn = async (
-  authorization: string | null,
-): Promise<IAuthValidation> => {
+const validateAuth: TValidateAuthFn = async (authorization: string | null): Promise<IAuthValidation> => {
   if (!authorization) throw new AuthError();
 
   // Throws an AuthError in case is invalid

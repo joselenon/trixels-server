@@ -1,4 +1,5 @@
 import { RESPONSE_CONFIG } from '../config/constants/RESPONSES';
+import { TGQLResponsesTypes } from '../services/PubSubEventManager';
 
 type TSuccessMessage = keyof typeof RESPONSE_CONFIG.SUCCESS;
 type TErrorMessage = keyof typeof RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS;
@@ -9,9 +10,10 @@ const MESSAGES = {
   ...RESPONSE_CONFIG.SUCCESS,
 };
 
-export const responseBody = <T>(success: boolean, message: TMessages, data: T) => {
+export const responseBody = <T>(success: boolean, type: TGQLResponsesTypes, message: TMessages, data: T) => {
   return {
-    success: success,
+    success,
+    type,
     message: MESSAGES[message],
     data,
   };
@@ -20,5 +22,5 @@ export const responseBody = <T>(success: boolean, message: TMessages, data: T) =
 // Used at HTTP errors treatment middleware
 export const errorResponse = (message: string) => ({
   success: false,
-  message: message,
+  message,
 });
