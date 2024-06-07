@@ -1,4 +1,4 @@
-import { FirebaseInstance, RedisInstance } from '..';
+import { FirebaseInstance, RabbitMQInstance } from '..';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { IBetInDB, IBetToFrontEnd, IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
 import { IRaffleInDb, IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
@@ -45,13 +45,35 @@ class BalanceUpdateService {
   }
 
   async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
-    const { sendInTimestamp, userId, env, type } = balanceUpdatePayload;
+    await RabbitMQInstance.sendMessage(this.balanceUpdateQueueRedisKey, JSON.stringify(balanceUpdatePayload));
+  }
 
-    await RedisInstance.rPush(
-      this.balanceUpdateQueueRedisKey,
-      { userId, sendInTimestamp, env, type },
-      { isJSON: true },
-    );
+  processBalanceUpdateQueue() {
+    const handleMessage = async (message: string) => {
+      try {
+        const messageToJS = JSON.parse(message) as IBalanceUpdateItemPayload<unknown>;
+
+        switch (messageToJS.type) {
+          case 'payWinners':
+            await this.processPayWinnersItem({ ...messageToJS, env: messageToJS.env as IPayWinnersEnv });
+            break;
+
+          case 'buyRaffleTicket':
+            await this.processBuyRaffleTicketItem({ ...messageToJS, env: messageToJS.env as IBuyRaffleTicketEnv });
+            break;
+
+          case 'createRaffle':
+            await this.processCreateRaffleItem({ ...messageToJS, env: messageToJS.env as ICreateRaffleEnv });
+            break;
+        }
+      } catch (err: unknown) {
+        if (!(err instanceof ClientError)) {
+          throw err;
+        }
+      }
+    };
+
+    RabbitMQInstance.consumeMessages(this.balanceUpdateQueueRedisKey, handleMessage);
   }
 
   async processCreateRaffleItem(item: IBalanceUpdateItemPayload<ICreateRaffleEnv>) {
@@ -195,54 +217,6 @@ class BalanceUpdateService {
 
       BalanceService.sendBalancePubSubEvent(userId, newBalance, sendInTimestamp);
     });
-  }
-
-  async startService() {
-    const checkQueueAndProcess = async (): Promise<any> => {
-      try {
-        const nextBalanceToUpdate = await RedisInstance.lRange(
-          this.balanceUpdateQueueRedisKey,
-          { start: 0, end: -1 },
-          { isJSON: true },
-        );
-
-        if (nextBalanceToUpdate && nextBalanceToUpdate.length > 0) {
-          const nextItem = await RedisInstance.lPop<IBalanceUpdateItemPayload<unknown>>(
-            this.balanceUpdateQueueRedisKey,
-            1,
-            { isJSON: true },
-          );
-
-          if (!nextItem) return await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          switch (nextItem.type) {
-            case 'payWinners':
-              await this.processPayWinnersItem({ ...nextItem, env: nextItem.env as IPayWinnersEnv });
-              break;
-
-            case 'buyRaffleTicket':
-              await this.processBuyRaffleTicketItem({ ...nextItem, env: nextItem.env as IBuyRaffleTicketEnv });
-              break;
-
-            case 'createRaffle':
-              await this.processCreateRaffleItem({ ...nextItem, env: nextItem.env as ICreateRaffleEnv });
-              break;
-          }
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-
-        checkQueueAndProcess();
-      } catch (err: unknown) {
-        if (err instanceof ClientError) {
-          return checkQueueAndProcess();
-        }
-
-        return console.log('Unexpected error occurred. Balance update queue has stopped!');
-      }
-    };
-
-    checkQueueAndProcess();
   }
 }
 

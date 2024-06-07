@@ -1,6 +1,6 @@
-/* Multiplicar preropllscreentime pela quantidade de vencedores que tiver */
+/* Multiplicar prerollscreentime pela quantidade de vencedores que tiver */
 const WheelAnimationTime = 4000;
-const TimerTime = 10000;
+const TimerTime = 14000;
 const TotalTimeToRoll = WheelAnimationTime + TimerTime;
 
 /* Function to check if raffle is completely finished (even the animation) */

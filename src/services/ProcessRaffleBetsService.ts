@@ -107,7 +107,7 @@ class ProcessRaffleBetsInstance {
       isJSON: true,
     });
 
-    await this.processQueue(gameId);
+    this.processQueue(gameId);
   }
 }
 

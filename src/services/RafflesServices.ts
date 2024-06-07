@@ -94,6 +94,8 @@ class RaffleUtils {
     }
 
     const isValidPrizes = (prizes: TRaffleCreationPrizesWinners): boolean => {
+      if (Object.keys(prizes).length <= 0) return false;
+
       return Object.values(prizes).every(
         (winnerXPrizes) =>
           'info' in winnerXPrizes &&

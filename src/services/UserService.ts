@@ -1,11 +1,13 @@
 import { ethers } from 'ethers';
-import { FirebaseInstance } from '..';
+import { FirebaseInstance, RedisInstance } from '..';
 import cutWalletAddress from '../common/cutWalletAddress';
 import {
   InvalidPassword,
   InvalidUsername,
   UserNotFound,
   UsernameAlreadyExistsError,
+  WalletAlreadyVerifiedError,
+  WalletVerificationError,
 } from '../config/errors/classes/ClientErrors';
 import { UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
@@ -14,6 +16,7 @@ import ENVIRONMENT from '../config/constants/ENVIRONMENT';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
 import { checkIfUsernameExists } from '../common/checkIfUserAlreadyExists';
+import getRedisKeyHelper from '../helpers/redisHelper';
 
 export interface IUpdateUserCredentialsPayload {
   email?: string;
@@ -187,6 +190,32 @@ class UserService {
 
     return walletInDb.result.publicAddress;
   }
+
+  async verifyWallet(userId: string) {
+    const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
+
+    const { roninWallet } = docData;
+    if (!roninWallet.value) throw new WalletVerificationError();
+    if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
+
+    function getRandomNumber() {
+      let randomNum = Math.random();
+      randomNum = randomNum * (2 - 1);
+      randomNum = 1 + randomNum;
+
+      return randomNum.toFixed(8);
+    }
+
+    const randomValueToSend = { randomValue: getRandomNumber() };
+    const messageToJSON = JSON.stringify({ userId, roninWallet, ...randomValueToSend });
+
+    const redisKey = getRedisKeyHelper('walletVerificationItems');
+    await RedisInstance.rPush(redisKey, messageToJSON);
+
+    return randomValueToSend;
+  }
+
+  async verifyWalletCheck() {}
 }
 
 export default new UserService();

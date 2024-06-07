@@ -75,6 +75,18 @@ export class UserUpdateInfoError extends ClientError {
   }
 }
 
+export class WalletVerificationError extends ClientError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION) {
+    super(400, message, RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION);
+  }
+}
+
+export class WalletAlreadyVerifiedError extends ClientError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_ALREADY_VERIFIED) {
+    super(400, message, RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_ALREADY_VERIFIED);
+  }
+}
+
 export class CodeNotFound extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_NOT_FOUND) {
     super(400, message, RESPONSE_CONFIG.ERROR.TYPES.Deposit);

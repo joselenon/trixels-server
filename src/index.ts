@@ -7,6 +7,7 @@ import FirestoreService from './services/FirestoreService';
 import RedisService from './services/RedisService';
 import { RaffleUtils } from './services/RafflesServices';
 import BalanceUpdateService from './services/BalanceUpdateService';
+import RabbitMQService from './services/RabbitMQService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -19,10 +20,12 @@ const RedisInstance = new RedisService(
   ENVIRONMENT.REDIS_PASSWORD,
 );
 
+const RabbitMQInstance = new RabbitMQService({ host: 'localhost', password: 'guest', port: 5672, username: 'guest' });
+
 async function init() {
   await RedisInstance.flushAll();
 
-  BalanceUpdateService.startService();
+  BalanceUpdateService.processBalanceUpdateQueue();
 
   await RaffleUtils.startRafflesServices();
   await AppService.initialize();
@@ -32,4 +35,4 @@ async function init() {
 
 init();
 
-export { FirebaseInstance, RedisInstance, firebaseApp };
+export { FirebaseInstance, RedisInstance, RabbitMQInstance, firebaseApp };
