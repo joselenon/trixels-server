@@ -4,7 +4,7 @@ import { RESPONSE_CONFIG } from '../../constants/RESPONSES';
 
 export interface IPubSubConfig {
   userId: string;
-  reqType: 'CREATE_RAFFLE';
+  reqType: 'CREATE_RAFFLE' | 'BUY_RAFFLE_TICKET';
 }
 
 export abstract class ClientError extends Error {

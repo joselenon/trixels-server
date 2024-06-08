@@ -13,13 +13,14 @@ class BetValidatorService {
   async validateUserBalanceForBet(userDocId: string, totalAmountBet: number): Promise<void> {
     const { balance: userBalance } = await BalanceService.getUserBalance(userDocId);
     if (userBalance < totalAmountBet) {
-      throw new InsufficientBalanceError();
+      throw new InsufficientBalanceError({ reqType: 'CREATE_RAFFLE', userId: userDocId });
     }
   }
 
   async checkIfTicketNumbersAreAvailable(
     raffleInDb: IRaffleToFrontEnd,
     buyRaffleTicketPayloadInfo: IBuyRaffleTicketsPayload['info'],
+    userId: string,
   ) {
     const { bets } = raffleInDb.info;
     const { ticketNumbers } = buyRaffleTicketPayloadInfo;
@@ -27,8 +28,9 @@ class BetValidatorService {
     for (const betData of bets) {
       const { tickets } = betData.info;
 
-      const ticketAlreadyUsed = tickets.filter((num) => ticketNumbers.includes(num));
-      if (ticketAlreadyUsed.length > 0) throw new TicketAlreadyTaken(ticketAlreadyUsed);
+      const ticketsAlreadyUsed = tickets.filter((num) => ticketNumbers.includes(num));
+      if (ticketsAlreadyUsed.length > 0)
+        throw new TicketAlreadyTaken(ticketsAlreadyUsed, { reqType: 'BUY_RAFFLE_TICKET', userId });
     }
   }
 
@@ -50,7 +52,7 @@ class BetValidatorService {
 
     if (finishedAt) {
       const finishedAtToInt = parseInt(finishedAt);
-      if (finishedAtToInt < betMadeAt) throw new GameAlreadyFinished();
+      if (finishedAtToInt < betMadeAt) throw new GameAlreadyFinished({ reqType: 'BUY_RAFFLE_TICKET', userId });
     }
 
     const { info: buyRaffleTicketPayloadInfo } = buyRaffleTicketPayload;
@@ -62,7 +64,7 @@ class BetValidatorService {
     if (totalAmountBet > userBalance) throw new InsufficientBalanceError({ userId, reqType: 'CREATE_RAFFLE' });
 
     if (!randomTicket) {
-      await this.checkIfTicketNumbersAreAvailable(raffleInRedis, buyRaffleTicketPayloadInfo);
+      await this.checkIfTicketNumbersAreAvailable(raffleInRedis, buyRaffleTicketPayloadInfo, userId);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { TRaffleCreationPrizesWinners, TRaffleCreationWinnerPrizes } from '../config/interfaces/IRaffles';
+import { TRaffleCreationPrizesWinners, TRaffleCreationWinnerPrizes } from '../config/interfaces/IRaffleCreation';
 
 /* Returns all prize items (of all the winners) */
 function getAllPrizesItems(prizes: TRaffleCreationPrizesWinners) {

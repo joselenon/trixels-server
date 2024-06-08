@@ -131,8 +131,6 @@ class UserController {
       const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
 
       if (!validatedJWT) throw new AuthError();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { userDocId } = validatedJWT;
 
       const response = await UserService.verifyWalletCheck();
 
