@@ -81,7 +81,7 @@ class UserValidator {
     userRefsArray: UsersReferences,
   ) {
     try {
-      const registry = await FirebaseInstance.writeDocument('multiesRefs', {
+      const registry = await FirebaseInstance.writeDocument('multies', {
         userRef,
         userRefsArray,
       });
