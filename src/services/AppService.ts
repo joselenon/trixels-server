@@ -15,10 +15,7 @@ import routes from '../routes';
 import { typeDefs, resolvers } from '../graphql';
 import SentryConfig from '../config/app/SentryConfig';
 import corsMiddleware from '../middlewares/corsMiddleware';
-import {
-  expressJSONMiddleware,
-  expressURLEncodedMiddleware,
-} from '../middlewares/expressMiddlewares';
+import { expressJSONMiddleware, expressURLEncodedMiddleware } from '../middlewares/expressMiddlewares';
 import {
   errorHandlerMiddleware,
   requestHandlerMiddleware,

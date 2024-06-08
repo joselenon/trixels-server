@@ -4,7 +4,7 @@ const fs = require('fs-extra');
 const path = require('path');
 
 const sourceDir = path.join(__dirname, 'src');
-const distDir = path.join(__dirname, 'dist');
+const distDir = path.join(__dirname, 'build');
 
 const copyFiles = (sourceDir, distDir, fileExtension) => {
   fs.readdirSync(sourceDir).forEach((file) => {
