@@ -24,14 +24,6 @@ export interface IRedeemCodePayload {
   code: string;
 }
 
-export interface ICreateTransactionPayload {
-  method: 'berry';
-  type: 'deposit' | 'withdraw';
-  userRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
-  value: number;
-  createdAt: number;
-}
-
 export interface IJackpotBetPayload {
   amountBet: number;
 }

@@ -24,6 +24,7 @@ const ENVIRONMENT = {
   JWT_SECRET: process.env.JWT_SECRET as string,
   WALLETS_ENCRYPTION_KEY: process.env.WALLETS_ENCRYPTION_KEY as string,
   WALLETS_ENCRYPTION_KEY_VERSION: process.env.WALLETS_ENCRYPTION_KEY as string,
+  SKY_MAVIS_WEBHOOK_SIGNATURE: process.env.WALLETS_ENCRYPTION_KEY as string,
 };
 
 const requiredVariables = [
@@ -43,6 +44,7 @@ const requiredVariables = [
   'JWT_SECRET',
   'WALLETS_ENCRYPTION_KEY',
   'WALLETS_ENCRYPTION_KEY_VERSION',
+  'SKY_MAVIS_WEBHOOK_SIGNATURE',
 ];
 
 const missingVariables = requiredVariables.filter((variable) => !process.env[variable]);

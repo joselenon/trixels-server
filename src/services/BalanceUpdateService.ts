@@ -1,4 +1,4 @@
-import { FirebaseInstance, RabbitMQInstance } from '..';
+import { FirebaseInstance, RabbitMQInstance, RedisInstance } from '..';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { IBetInDB, IBetToFrontEnd, IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
 import { IRaffleInDb, IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
@@ -12,6 +12,8 @@ import { ClientError } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager, { IPubSubCreateRaffleData } from './PubSubEventManager';
 import RaffleTicketNumbersService from './RaffleTicketNumbersService';
 import BetsService from './BetsService';
+import { ITransactionInDb } from '../config/interfaces/ITransaction';
+import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
 
 export interface IBuyRaffleTicketEnv {
   buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis;
@@ -28,11 +30,21 @@ export interface ICreateRaffleEnv {
   raffleOwnerCost: number;
 }
 
+export interface IDepositEnv {
+  transactionInfo: {
+    createdAt: number;
+    symbol: 'RON' | 'PIXEL' | 'AXS' | unknown;
+    type: 'deposit' | 'withdraw';
+    value: number;
+    fromAddress: string;
+  };
+}
+
 /* Item refers to the item in the queue */
 
 interface IBalanceUpdateItemPayload<Env> {
   userId: string;
-  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle';
+  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit';
   env: Env;
   sendInTimestamp?: number;
 }
@@ -54,6 +66,10 @@ class BalanceUpdateService {
         const messageToJS = JSON.parse(message) as IBalanceUpdateItemPayload<unknown>;
 
         switch (messageToJS.type) {
+          case 'deposit':
+            await this.processDeposit({ ...messageToJS, env: messageToJS.env as IDepositEnv });
+            break;
+
           case 'payWinners':
             await this.processPayWinnersItem({ ...messageToJS, env: messageToJS.env as IPayWinnersEnv });
             break;
@@ -216,6 +232,82 @@ class BalanceUpdateService {
       transaction.update(userRefResult, { balance: newBalance });
 
       BalanceService.sendBalancePubSubEvent(userId, newBalance, sendInTimestamp);
+    });
+  }
+
+  async checkForWalletVerification({
+    userId,
+    wallet,
+    transactionValue,
+    symbol,
+  }: {
+    userId: string;
+    wallet: string;
+    transactionValue: number;
+    symbol: unknown;
+  }): Promise<{ wasAVerification: boolean; successfulVerification?: boolean }> {
+    if (symbol !== 'PIXEL') {
+      return { wasAVerification: false };
+    }
+
+    const redisKey = getRedisKeyHelper('walletVerification', userId);
+    const walletVerificationItem = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
+
+    if (walletVerificationItem) {
+      const { randomValue, roninWallet } = walletVerificationItem;
+
+      /* A way to fix the round value that sky mavis webhook returns */
+      const randomNumberRounded = parseFloat(randomValue.toFixed(7));
+
+      if (transactionValue === randomNumberRounded && wallet === roninWallet) {
+        return { wasAVerification: true, successfulVerification: true };
+      }
+
+      return { wasAVerification: true, successfulVerification: false };
+    }
+
+    return { wasAVerification: false };
+  }
+
+  async processDeposit(item: IBalanceUpdateItemPayload<IDepositEnv>) {
+    console.log('Processing Deposit...');
+
+    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+      const { env, userId } = item;
+      const { transactionInfo } = env;
+      const { value, symbol, fromAddress } = transactionInfo;
+
+      const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
+      const { docData: userData, result: userRef } = userRefQuery;
+
+      const transactionsCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
+      const newTransactionRef = transactionsCollectionRef.doc();
+
+      const transactionInDbPayload: ITransactionInDb = {
+        ...transactionInfo,
+        userRef,
+      };
+
+      transaction.set(newTransactionRef, transactionInDbPayload);
+
+      const newBalance = calcWithDecimalsService(userData.balance, 'add', value);
+      transaction.update(userRef, { balance: newBalance });
+
+      if (value < 1) {
+        const { wasAVerification, successfulVerification } = await this.checkForWalletVerification({
+          userId,
+          symbol,
+          transactionValue: value,
+          wallet: fromAddress,
+        });
+
+        if (wasAVerification && successfulVerification) {
+          transaction.update(userRef, { 'roninWallet.verified': true });
+        }
+      }
+
+      BalanceService.sendBalancePubSubEvent(userId, newBalance);
+      console.log('Paid to depositor');
     });
   }
 }

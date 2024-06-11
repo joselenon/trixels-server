@@ -1,5 +1,3 @@
-import ITransaction from '../config/interfaces/ITransaction';
-
 import getRedisKeyHelper from '../helpers/redisHelper';
 import { FirebaseInstance, RedisInstance } from '..';
 import { IUser } from '../config/interfaces/IUser';
@@ -7,10 +5,11 @@ import { IBetInDB } from '../config/interfaces/IBet';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { InvalidUsername } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager from './PubSubEventManager';
+import { ITransactionInDb } from '../config/interfaces/ITransaction';
 
 class BalanceService {
   static async calculateTransactions(userRef: FirebaseFirestore.DocumentReference) {
-    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<ITransaction>(
+    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<ITransactionInDb>(
       'transactions',
       'userRef',
       userRef,

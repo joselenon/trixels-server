@@ -20,6 +20,10 @@ export default class RedisService {
         return delay;
       },
     });
+
+    this.client.on('ready', () => {
+      console.log('Redis Initialized.');
+    });
   }
 
   private promisifyCommand(command: TRedisCommands) {

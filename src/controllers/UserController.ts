@@ -124,21 +124,6 @@ class UserController {
       next(err);
     }
   };
-
-  verifyWalletCheck = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const token = req.headers.authorization;
-      const validatedJWT = JWTService.validateJWT({ mustBeAuth: true, token });
-
-      if (!validatedJWT) throw new AuthError();
-
-      const response = await UserService.verifyWalletCheck();
-
-      res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', response));
-    } catch (err) {
-      next(err);
-    }
-  };
 }
 
 export default new UserController();

@@ -7,7 +7,7 @@ interface IRedisKeys {
   isBetsQueueProcessing: string;
   allRaffles: string;
   balanceUpdateQueue: string;
-  walletVerificationItems: string;
+  walletVerification: string;
 }
 
 function getRedisKeyHelper(key: keyof IRedisKeys, value?: string) {

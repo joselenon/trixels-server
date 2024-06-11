@@ -23,6 +23,7 @@ export type TDBCollections =
   | 'bets'
   | 'raffles'
   | 'jackpots'
-  | 'ethereumDepositWallets';
+  | 'ethereumDepositWallets'
+  | 'differentActivities';
 
 export type DbChangeFunction = (transaction: FirebaseFirestore.Transaction, args: any[]) => Promise<void>;
