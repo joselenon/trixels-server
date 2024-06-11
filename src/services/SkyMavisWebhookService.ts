@@ -80,6 +80,8 @@ interface IRonTransferPayload extends WebhookPayload {
 
 class SkyMavisWebhookService {
   async addressActivity(payload: IAddressActivityPayload) {
+    console.log('STARTING');
+
     const nowTime = new Date().getTime();
 
     /* FIX THIS ([0] is wrong) */
@@ -131,7 +133,7 @@ class SkyMavisWebhookService {
   async receiveInfo(payload: IAddressActivityPayload | ITokenTransferPayload | IRonTransferPayload) {
     switch (payload.type) {
       case 'ADDRESS_ACTIVITY':
-        this.addressActivity(payload as IAddressActivityPayload);
+        await this.addressActivity(payload as IAddressActivityPayload);
         break;
       case 'RON_TRANSFER':
         break;
