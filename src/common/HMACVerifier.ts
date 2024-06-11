@@ -6,7 +6,10 @@ export default function HMACVerifier(
   receivedSignature: string,
   secret = ENVIRONMENT.SKY_MAVIS_WEBHOOK_SIGNATURE,
 ) {
-  const computedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(Buffer.from(payload));
 
-  return crypto.timingSafeEqual(Buffer.from(computedSignature, 'hex'), Buffer.from(receivedSignature, 'hex'));
+  const computedSignature = hmac.digest('hex');
+
+  return receivedSignature === computedSignature;
 }
