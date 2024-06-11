@@ -1,4 +1,3 @@
-import { ethers } from 'ethers';
 import { FirebaseInstance, RedisInstance } from '..';
 import cutWalletAddress from '../common/cutWalletAddress';
 import {
@@ -11,8 +10,6 @@ import {
 } from '../config/errors/classes/ClientErrors';
 import { UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
-import { IETHDepositWalletDb } from '../config/interfaces/IConfigs';
-import ENVIRONMENT from '../config/constants/ENVIRONMENT';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
 import { checkIfUsernameExists } from '../common/checkIfUserAlreadyExists';
@@ -160,7 +157,7 @@ class UserService {
     return await FirebaseInstance.updateDocument('users', userInDb.docId, filteredPayload);
   }
 
-  async createEthereumDepositWallet(userDocId: string) {
+  /*   async createEthereumDepositWallet(userDocId: string) {
     const userRef = await FirebaseInstance.getDocumentRefWithData('users', userDocId);
 
     const randomWalletCreation = ethers.Wallet.createRandom();
@@ -191,7 +188,7 @@ class UserService {
     }
 
     return walletInDb.result.publicAddress;
-  }
+  } */
 
   async verifyWallet(userId: string): Promise<IWalletVerificationInRedis> {
     const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
