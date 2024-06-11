@@ -74,3 +74,9 @@ export class UnknownError extends SystemError {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.Unknown);
   }
 }
+
+export class ForgedWebhookError extends SystemError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.FORGED_WEBHOOK) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}

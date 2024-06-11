@@ -30,6 +30,7 @@ const RESPONSE_CONFIG = {
       REDIS: 'Error at redis',
       ENV_VARIABLES_MISSING: 'You forgot some environment variables: ',
       UNAVAILABLE_AUTH_METHOD: 'Unavailable auth method',
+      FORGED_WEBHOOK: 'Webhook forged',
     },
 
     CLIENT_ERROR_MSGS: {

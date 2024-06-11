@@ -1,17 +1,21 @@
 import ENVIRONMENT from '../config/constants/ENVIRONMENT';
 import crypto from 'crypto';
+import { ForgedWebhookError } from '../config/errors/classes/SystemErrors';
 
 export default function HMACVerifier(
   payload: any,
-  receivedSignature: string,
-  secret = ENVIRONMENT.SKY_MAVIS_WEBHOOK_SIGNATURE,
+  skyMavisSignature: string,
+  signingKey = ENVIRONMENT.SKY_MAVIS_WEBHOOK_SIGNATURE,
 ) {
-  const payloadToJSON = typeof payload === 'object' ? JSON.stringify(payload) : payload;
+  console.log('skyMavisSignature', skyMavisSignature);
+  console.log('signingKey', signingKey);
 
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(Buffer.from(payloadToJSON));
+  const payloadToJSON = JSON.stringify(payload);
+
+  const hmac = crypto.createHmac('sha256', signingKey);
+  hmac.update(Buffer.isBuffer(payloadToJSON) ? payloadToJSON : Buffer.from(payloadToJSON));
 
   const computedSignature = hmac.digest('hex');
 
-  return receivedSignature === computedSignature;
+  if (skyMavisSignature !== computedSignature) throw new ForgedWebhookError();
 }

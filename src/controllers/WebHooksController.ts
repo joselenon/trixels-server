@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import HMACVerifier from '../common/HMACVerifier';
-import { UnknownError } from '../config/errors/classes/SystemErrors';
 import SkyMavisWebhookService from '../services/SkyMavisWebhookService';
 
 class WebHooksController {
@@ -9,8 +8,10 @@ class WebHooksController {
     try {
       const skyMavisSignature = req.headers['x-skymavis-signature'] as string;
 
+      console.log(skyMavisSignature);
+
       const payload = req.body;
-      if (!HMACVerifier(payload, skyMavisSignature)) throw new UnknownError('Invalid signature, webhook forged');
+      HMACVerifier(payload, skyMavisSignature);
 
       console.log('Signature is valid!!!');
       await SkyMavisWebhookService.receiveInfo(payload);
