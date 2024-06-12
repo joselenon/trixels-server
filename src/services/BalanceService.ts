@@ -5,11 +5,11 @@ import { IBetInDB } from '../config/interfaces/IBet';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { InvalidUsername } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager from './PubSubEventManager';
-import { ITransactionInDb } from '../config/interfaces/ITransaction';
+import { TTransactionInDb } from '../config/interfaces/ITransaction';
 
 class BalanceService {
   static async calculateTransactions(userRef: FirebaseFirestore.DocumentReference) {
-    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<ITransactionInDb>(
+    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<TTransactionInDb>(
       'transactions',
       'userRef',
       userRef,
