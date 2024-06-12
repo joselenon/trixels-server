@@ -1,6 +1,6 @@
 import { FirebaseInstance } from '..';
 import { TRIXELS_WALLET_ADDRESS } from '../config/app/System';
-import { ITransactionInDb } from '../config/interfaces/ITransaction';
+import { IDepositTransactionInDb } from '../config/interfaces/ITransaction';
 import { IUser } from '../config/interfaces/IUser';
 import BalanceUpdateService, { IDepositEnv } from './BalanceUpdateService';
 
@@ -95,7 +95,7 @@ class SkyMavisWebhookService {
 
     const userRelatedToAddress = await FirebaseInstance.getSingleDocumentByParam<IUser>(
       'users',
-      'roninWallet',
+      'roninWallet.value',
       fromAddress,
     );
     const userId = userRelatedToAddress ? userRelatedToAddress.docId : null;
@@ -106,12 +106,13 @@ class SkyMavisWebhookService {
     }
 
     if (!userId) {
-      return await FirebaseInstance.writeDocument<ITransactionInDb>('transactions', {
+      return await FirebaseInstance.writeDocument<IDepositTransactionInDb>('transactions', {
         createdAt: nowTime,
         symbol,
         value,
         userRef: null,
         type: 'deposit',
+        fromAddress,
       });
     }
 

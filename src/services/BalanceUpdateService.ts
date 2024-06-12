@@ -12,8 +12,8 @@ import { ClientError } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager, { IPubSubCreateRaffleData } from './PubSubEventManager';
 import RaffleTicketNumbersService from './RaffleTicketNumbersService';
 import BetsService from './BetsService';
-import { ITransactionInDb } from '../config/interfaces/ITransaction';
 import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
+import { IDepositTransactionInDb } from '../config/interfaces/ITransaction';
 
 export interface IBuyRaffleTicketEnv {
   buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis;
@@ -283,7 +283,7 @@ class BalanceUpdateService {
       const transactionsCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
       const newTransactionRef = transactionsCollectionRef.doc();
 
-      const transactionInDbPayload: ITransactionInDb = {
+      const transactionInDbPayload: IDepositTransactionInDb = {
         ...transactionInfo,
         userRef,
       };

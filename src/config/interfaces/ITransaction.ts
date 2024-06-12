@@ -6,10 +6,11 @@ export interface ICreateTransactionPayload {
   value: number;
 }
 
-export interface ITransactionInDb {
+export interface IDepositTransactionInDb {
   createdAt: number;
   symbol: 'RON' | 'PIXEL' | 'AXS' | unknown;
   type: 'deposit' | 'withdraw';
   userRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> | null;
   value: number;
+  fromAddress: string;
 }
