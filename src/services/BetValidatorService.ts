@@ -36,19 +36,16 @@ class BetValidatorService {
 
   async checkRaffleBuyRequestValidity({
     userId,
-    userBalance,
     betMadeAt,
     buyRaffleTicketPayload,
     raffleInRedis,
   }: {
     userId: string;
-    userBalance: number;
     betMadeAt: number;
     buyRaffleTicketPayload: IBuyRaffleTicketsPayload;
     raffleInRedis: IRaffleToFrontEnd;
   }) {
-    const { info, finishedAt } = raffleInRedis;
-    const { ticketPrice } = info;
+    const { finishedAt } = raffleInRedis;
 
     if (finishedAt) {
       const finishedAtToInt = parseInt(finishedAt);
@@ -56,12 +53,7 @@ class BetValidatorService {
     }
 
     const { info: buyRaffleTicketPayloadInfo } = buyRaffleTicketPayload;
-    const { randomTicket, ticketNumbers, quantityOfTickets } = buyRaffleTicketPayloadInfo;
-
-    const quantityOfTicketsFiltered = randomTicket ? quantityOfTickets! : ticketNumbers.length;
-
-    const totalAmountBet = ticketPrice * quantityOfTicketsFiltered;
-    if (totalAmountBet > userBalance) throw new InsufficientBalanceError({ userId, reqType: 'CREATE_RAFFLE' });
+    const { randomTicket } = buyRaffleTicketPayloadInfo;
 
     if (!randomTicket) {
       await this.checkIfTicketNumbersAreAvailable(raffleInRedis, buyRaffleTicketPayloadInfo, userId);

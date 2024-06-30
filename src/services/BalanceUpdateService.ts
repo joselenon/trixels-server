@@ -1,42 +1,36 @@
 import { FirebaseInstance, RabbitMQInstance, RedisInstance } from '..';
-import { UnknownError } from '../config/errors/classes/SystemErrors';
-import { IBetInDB, IBetToFrontEnd, IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
-import { IRaffleInDb, IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
 import getRedisKeyHelper from '../helpers/redisHelper';
 import BalanceService from './BalanceService';
-import BetValidatorService from './BetValidatorService';
-import { RaffleUtils } from './RafflesServices';
 import { IUser } from '../config/interfaces/IUser';
 import calcWithDecimalsService from '../common/calcWithDecimals';
-import { ClientError } from '../config/errors/classes/ClientErrors';
-import PubSubEventManager, { IPubSubCreateRaffleData } from './PubSubEventManager';
-import RaffleTicketNumbersService from './RaffleTicketNumbersService';
-import BetsService from './BetsService';
+import { IPubSubConfig, InsufficientBalanceError } from '../config/errors/classes/ClientErrors';
 import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
-import { IDepositTransactionInDb } from '../config/interfaces/ITransaction';
+import { IDepositTransactionsInDb, ITransactionBase } from '../config/interfaces/ITransaction';
+import {
+  ProcessBuyRaffleTicketItemError,
+  ProcessCreateRaffleItemError,
+  ProcessDepositError,
+  ProcessPayWinnersItemError,
+  ProcessRefundError,
+} from '../config/errors/classes/BalanceUpdateServiceErrors';
+import { SystemError } from '../config/errors/classes/SystemErrors';
 
-export interface IBuyRaffleTicketEnv {
-  buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis;
-  raffleInRedis: IRaffleToFrontEnd;
-  betMadeAt: number;
+export interface ISpendActionEnv {
+  totalAmountBet: number;
 }
 
-export interface IPayWinnersEnv {
-  betUpdatedObj: IBetToFrontEnd;
-}
-
-export interface ICreateRaffleEnv {
-  raffleObjToDb: IRaffleInDb;
-  raffleOwnerCost: number;
+export interface IReceiveActionEnv {
+  totalAmountToReceive: number;
+  sendPSubInTimestamp?: number;
 }
 
 export interface IDepositEnv {
   transactionInfo: {
-    createdAt: number;
-    symbol: 'RON' | 'PIXEL' | 'AXS' | unknown;
-    type: 'deposit' | 'withdraw';
-    value: number;
-    fromAddress: string;
+    createdAt: ITransactionBase['createdAt'];
+    symbol: ITransactionBase['symbol'];
+    type: ITransactionBase['type'];
+    value: ITransactionBase['value'];
+    fromAddress: string | null;
   };
 }
 
@@ -44,9 +38,12 @@ export interface IDepositEnv {
 
 interface IBalanceUpdateItemPayload<Env> {
   userId: string;
-  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit';
+  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit' | 'refund';
   env: Env;
-  sendInTimestamp?: number;
+}
+
+export interface IBalanceAuthorization {
+  authorized: boolean;
 }
 
 class BalanceUpdateService {
@@ -56,197 +53,170 @@ class BalanceUpdateService {
     this.balanceUpdateQueueRedisKey = getRedisKeyHelper('balanceUpdateQueue');
   }
 
-  async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
-    await RabbitMQInstance.sendMessage(this.balanceUpdateQueueRedisKey, JSON.stringify(balanceUpdatePayload));
+  static async validateBalance(userDocId: string, raffleOwnerCost: number, pubSubConfig: IPubSubConfig) {
+    const userBalanceAndData = await BalanceService.getUserBalance(userDocId);
+    if (raffleOwnerCost > userBalanceAndData.balance) throw new InsufficientBalanceError(pubSubConfig);
+
+    return userBalanceAndData;
+  }
+
+  async processRefund(item: IBalanceUpdateItemPayload<IReceiveActionEnv>) {
+    try {
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const { userId, env } = item;
+        const { totalAmountToReceive } = env;
+
+        const { docRef: userRef, docData: userData } = await FirebaseInstance.getDocumentRefWithData<IUser>(
+          'users',
+          userId,
+        );
+
+        const { balance } = userData;
+        const newBalance = calcWithDecimalsService(balance, 'add', totalAmountToReceive);
+
+        transaction.update(userRef, { balance: newBalance });
+
+        BalanceService.sendBalancePubSubEvent(userId, newBalance);
+      });
+    } catch (err: unknown) {
+      if (err instanceof SystemError) {
+        throw new ProcessRefundError(JSON.stringify(item));
+      }
+    }
+  }
+
+  async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>): Promise<null | IBalanceAuthorization> {
+    if (balanceUpdatePayload.type === 'buyRaffleTicket' || balanceUpdatePayload.type === 'createRaffle') {
+      return (await RabbitMQInstance.sendRPCMessage('balanceUpdateQueue', balanceUpdatePayload)) as {
+        authorized: boolean;
+      };
+    }
+
+    await RabbitMQInstance.sendMessage('balanceUpdateQueue', balanceUpdatePayload);
+    return null;
   }
 
   processBalanceUpdateQueue() {
     const handleMessage = async (message: string) => {
-      try {
-        const messageToJS = JSON.parse(message) as IBalanceUpdateItemPayload<unknown>;
+      const messageToJS = JSON.parse(message) as IBalanceUpdateItemPayload<unknown>;
 
-        switch (messageToJS.type) {
-          case 'deposit':
-            await this.processDeposit({ ...messageToJS, env: messageToJS.env as IDepositEnv });
-            break;
+      switch (messageToJS.type) {
+        case 'deposit':
+          await this.processDeposit({ ...messageToJS, env: messageToJS.env as IDepositEnv });
+          break;
 
-          case 'payWinners':
-            await this.processPayWinnersItem({ ...messageToJS, env: messageToJS.env as IPayWinnersEnv });
-            break;
+        case 'payWinners':
+          await this.processPayWinnersItem({ ...messageToJS, env: messageToJS.env as IReceiveActionEnv });
+          break;
 
-          case 'buyRaffleTicket':
-            await this.processBuyRaffleTicketItem({ ...messageToJS, env: messageToJS.env as IBuyRaffleTicketEnv });
-            break;
+        case 'buyRaffleTicket':
+          await this.processBuyRaffleTicketItem({ ...messageToJS, env: messageToJS.env as ISpendActionEnv });
+          break;
 
-          case 'createRaffle':
-            await this.processCreateRaffleItem({ ...messageToJS, env: messageToJS.env as ICreateRaffleEnv });
-            break;
-        }
-      } catch (err: unknown) {
-        if (!(err instanceof ClientError)) {
-          throw err;
-        }
+        case 'createRaffle':
+          await this.processCreateRaffleItem({ ...messageToJS, env: messageToJS.env as ISpendActionEnv });
+          break;
+
+        case 'refund':
+          await this.processRefund({ ...messageToJS, env: messageToJS.env as IReceiveActionEnv });
+          break;
       }
     };
 
-    RabbitMQInstance.consumeMessages(this.balanceUpdateQueueRedisKey, handleMessage);
-  }
-
-  async processCreateRaffleItem(item: IBalanceUpdateItemPayload<ICreateRaffleEnv>) {
-    const { userId, env } = item;
-    const { raffleObjToDb, raffleOwnerCost } = env;
-
-    let newRaffleId = '';
-
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const userBalance = await RaffleUtils.verifyRaffleOwnerBalance(userId, raffleOwnerCost, {
-        userId,
-        reqType: 'CREATE_RAFFLE',
-      });
-
-      const rafflesCollectionRef = await FirebaseInstance.getCollectionRef('raffles');
-      const newRaffleRef = rafflesCollectionRef.doc();
-      newRaffleId = newRaffleRef.id;
-
-      const betsCollectionRef = await FirebaseInstance.getCollectionRef('bets');
-      const newBetRef = betsCollectionRef.doc();
-
-      const raffleToFrontEndObj: IRaffleToFrontEnd = await RaffleUtils.filterRaffleToFrontEnd(
-        newRaffleId,
-        raffleObjToDb,
-      );
-      await RaffleUtils.updateSpecificRaffleInRedis(newRaffleId, raffleToFrontEndObj, 'active');
-
-      const userRefResult = (await FirebaseInstance.getDocumentRef('users', userId)).result;
-      const newUserBalance = calcWithDecimalsService(userBalance, 'subtract', raffleOwnerCost);
-
-      transaction.set(newRaffleRef, raffleObjToDb);
-      transaction.update(userRefResult, { balance: newUserBalance });
-
-      const betInDbObj = await BetsService.makeBetObjToDb({
-        userRef: userRefResult,
-        gameRef: newRaffleRef,
-        gameType: 'raffles',
-        amountBet: raffleOwnerCost,
-      });
-      transaction.set(newBetRef, betInDbObj);
-
-      BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
+    RabbitMQInstance.consumeMessages('balanceUpdateQueue', async (msg) => {
+      await handleMessage(msg);
     });
-
-    const pubSubData: IPubSubCreateRaffleData = { gameId: newRaffleId };
-    PubSubEventManager.publishEvent(
-      'GET_LIVE_MESSAGES',
-      {
-        success: true,
-        message: 'RAFFLE_CREATION_SUCCESS',
-        type: 'CREATE_RAFFLE',
-        data: JSON.stringify(pubSubData),
-      },
-      userId,
-    );
   }
 
-  async processBuyRaffleTicketItem(item: IBalanceUpdateItemPayload<IBuyRaffleTicketEnv>) {
-    const { userId, env } = item;
+  async processCreateRaffleItem(item: IBalanceUpdateItemPayload<ISpendActionEnv>) {
+    try {
+      const { userId, env } = item;
+      const { totalAmountBet } = env;
 
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const { buyRaffleTicketPayload, raffleInRedis, betMadeAt } = env;
-      const { gameId } = raffleInRedis;
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const { balance: userBalance, docRef: userRef } = await BalanceUpdateService.validateBalance(
+          userId,
+          totalAmountBet,
+          {
+            userId,
+            reqType: 'CREATE_RAFFLE',
+          },
+        );
 
-      const { ticketPrice } = raffleInRedis.info;
-      const { info } = buyRaffleTicketPayload;
-      const { randomTicket } = info;
+        const newUserBalance = calcWithDecimalsService(userBalance, 'subtract', totalAmountBet);
 
-      const { result: userRef, docData: userDocumentData } = await FirebaseInstance.getDocumentRefWithData<IUser>(
-        'users',
-        userId,
-      );
-      if (!userDocumentData) throw new UnknownError('User not found.');
+        transaction.update(userRef, { balance: newUserBalance });
 
-      const raffleRefResult = (await FirebaseInstance.getDocumentRef('raffles', gameId)).result;
-
-      const TicketNumberInstance = new RaffleTicketNumbersService(userId, env.raffleInRedis);
-      const ticketNumbersFiltered = await TicketNumberInstance.getTicketNumbersFiltered(buyRaffleTicketPayload);
-      const amountBet = ticketPrice * info.ticketNumbers.length;
-
-      await BetValidatorService.checkRaffleBuyRequestValidity({
-        userId,
-        userBalance: userDocumentData.balance,
-        betMadeAt,
-        buyRaffleTicketPayload,
-        raffleInRedis,
+        BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
+    } catch (err: unknown) {
+      if (err instanceof SystemError) {
+        throw new ProcessCreateRaffleItemError(JSON.stringify(item));
+      }
+    }
+  }
 
-      const betObjToDb: IBetInDB = {
-        gameRef: raffleRefResult,
-        amountBet,
-        prize: 0,
-        info: { type: 'raffles', tickets: ticketNumbersFiltered, randomTicket },
-        userRef: userRef,
-        createdAt: betMadeAt,
-      };
+  async processBuyRaffleTicketItem(item: IBalanceUpdateItemPayload<ISpendActionEnv>) {
+    try {
+      const { userId, env } = item;
 
-      const { result: raffleDocumentRef, docData: raffleDocumentData } =
-        await FirebaseInstance.getDocumentRefWithData<IRaffleInDb>('raffles', gameId);
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const { totalAmountBet } = env;
 
-      const collectionRef = await FirebaseInstance.getCollectionRef('bets');
-      const newBetRef = collectionRef.doc();
-      transaction.set(newBetRef, betObjToDb);
-
-      const betCreatedDocId = newBetRef.id;
-
-      if (raffleDocumentData && userDocumentData) {
-        transaction.update(raffleDocumentRef, {
-          'info.bets': [...raffleDocumentData.info.bets, newBetRef],
-          'info.ticketsBought': (raffleDocumentData.info.ticketsBought += betObjToDb.info.tickets.length),
+        const { balance, docRef: userRef } = await BalanceUpdateService.validateBalance(userId, totalAmountBet, {
+          userId,
+          reqType: 'BUY_RAFFLE_TICKET',
         });
 
-        const newUserBalance = calcWithDecimalsService(userDocumentData.balance, 'subtract', amountBet);
+        const newUserBalance = calcWithDecimalsService(balance, 'subtract', totalAmountBet);
         transaction.update(userRef, { balance: newUserBalance });
-        BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
 
-        const filteredBet = await BetsService.makeBetObjToFrontEnd(betObjToDb, betCreatedDocId);
-        await RaffleUtils.addBetInRaffle(gameId, filteredBet);
+        BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
+      });
+    } catch (err: unknown) {
+      if (err instanceof SystemError) {
+        throw new ProcessBuyRaffleTicketItemError(JSON.stringify(item));
       }
-    });
+    }
   }
 
-  async processPayWinnersItem(item: IBalanceUpdateItemPayload<IPayWinnersEnv>) {
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const { userId, sendInTimestamp, env } = item;
-      const { betUpdatedObj } = env;
+  async processPayWinnersItem(item: IBalanceUpdateItemPayload<IReceiveActionEnv>) {
+    try {
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const { userId, env } = item;
+        const { sendPSubInTimestamp, totalAmountToReceive } = env;
 
-      const { betId, prize } = betUpdatedObj;
+        const { docRef: userRef, docData: userData } = await FirebaseInstance.getDocumentRefWithData<IUser>(
+          'users',
+          userId,
+        );
 
-      const { result: userRefResult, docData: userData } = await FirebaseInstance.getDocumentRefWithData<IUser>(
-        'users',
-        userId,
-      );
-      const betRefResult = (await FirebaseInstance.getDocumentRef('bets', betId)).result;
+        const { balance } = userData;
+        const newBalance = calcWithDecimalsService(balance, 'add', totalAmountToReceive);
 
-      const { balance } = userData;
-      const newBalance = calcWithDecimalsService(balance, 'add', prize);
+        transaction.update(userRef, { balance: newBalance });
 
-      transaction.update(betRefResult, { prize });
-      transaction.update(userRefResult, { balance: newBalance });
-
-      BalanceService.sendBalancePubSubEvent(userId, newBalance, sendInTimestamp);
-    });
+        BalanceService.sendBalancePubSubEvent(userId, newBalance, sendPSubInTimestamp);
+      });
+    } catch (err: unknown) {
+      if (err instanceof SystemError) {
+        throw new ProcessPayWinnersItemError(JSON.stringify(item));
+      }
+    }
   }
 
   async checkForWalletVerification({
     userId,
-    wallet,
+    fromAddress,
     transactionValue,
     symbol,
   }: {
     userId: string;
-    wallet: string;
+    fromAddress: string | null;
     transactionValue: number;
     symbol: unknown;
   }): Promise<{ wasAVerification: boolean; successfulVerification?: boolean }> {
-    if (symbol !== 'PIXEL') {
+    if (symbol !== 'PIXEL' || !fromAddress) {
       return { wasAVerification: false };
     }
 
@@ -259,7 +229,7 @@ class BalanceUpdateService {
       /* A way to fix the round value that sky mavis webhook returns */
       const randomNumberRounded = parseFloat(randomValue.toFixed(7));
 
-      if (transactionValue === randomNumberRounded && wallet === roninWallet) {
+      if (transactionValue === randomNumberRounded && fromAddress === roninWallet) {
         return { wasAVerification: true, successfulVerification: true };
       }
 
@@ -270,45 +240,48 @@ class BalanceUpdateService {
   }
 
   async processDeposit(item: IBalanceUpdateItemPayload<IDepositEnv>) {
-    console.log('Processing Deposit...');
+    try {
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const { env, userId } = item;
+        const { transactionInfo } = env;
+        const { value, symbol, fromAddress } = transactionInfo;
 
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const { env, userId } = item;
-      const { transactionInfo } = env;
-      const { value, symbol, fromAddress } = transactionInfo;
+        const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
+        const { docData: userData, docRef: userRef } = userRefQuery;
 
-      const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
-      const { docData: userData, result: userRef } = userRefQuery;
+        const transactionsCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
+        const newTransactionRef = transactionsCollectionRef.doc();
 
-      const transactionsCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
-      const newTransactionRef = transactionsCollectionRef.doc();
+        const transactionInDbPayload: IDepositTransactionsInDb = {
+          ...transactionInfo,
+          userRef,
+        };
 
-      const transactionInDbPayload: IDepositTransactionInDb = {
-        ...transactionInfo,
-        userRef,
-      };
+        transaction.set(newTransactionRef, transactionInDbPayload);
 
-      transaction.set(newTransactionRef, transactionInDbPayload);
+        const newBalance = calcWithDecimalsService(userData.balance, 'add', value);
+        transaction.update(userRef, { balance: newBalance });
 
-      const newBalance = calcWithDecimalsService(userData.balance, 'add', value);
-      transaction.update(userRef, { balance: newBalance });
+        if (value < 1) {
+          const { wasAVerification, successfulVerification } = await this.checkForWalletVerification({
+            userId,
+            symbol,
+            transactionValue: value,
+            fromAddress: fromAddress,
+          });
 
-      if (value < 1) {
-        const { wasAVerification, successfulVerification } = await this.checkForWalletVerification({
-          userId,
-          symbol,
-          transactionValue: value,
-          wallet: fromAddress,
-        });
-
-        if (wasAVerification && successfulVerification) {
-          transaction.update(userRef, { 'roninWallet.verified': true });
+          if (wasAVerification && successfulVerification) {
+            transaction.update(userRef, { 'roninWallet.verified': true });
+          }
         }
-      }
 
-      BalanceService.sendBalancePubSubEvent(userId, newBalance);
-      console.log('Paid to depositor');
-    });
+        BalanceService.sendBalancePubSubEvent(userId, newBalance);
+      });
+    } catch (err) {
+      if (err instanceof SystemError) {
+        throw new ProcessDepositError(JSON.stringify(item));
+      }
+    }
   }
 }
 

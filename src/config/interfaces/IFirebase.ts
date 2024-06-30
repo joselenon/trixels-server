@@ -1,12 +1,13 @@
-export interface IFirebaseQueryResponse<R> {
+export interface IFirebaseResponse<D = undefined> {
   docId: string;
-  result: R;
+  docData: D;
+  docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
 }
 
-export interface IFirebaseQueryResponseWithData<R, D = undefined> {
+export interface IFirebaseManyDocumentsResponse<R> {
   docId: string;
-  result: R;
-  docData: D;
+  docData: R;
+  docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
 }
 
 export interface IFirebaseAllDocumentsByCollectionQueryResponse<R> {
@@ -24,6 +25,7 @@ export type TDBCollections =
   | 'raffles'
   | 'jackpots'
   | 'ethereumDepositWallets'
-  | 'differentActivities';
+  | 'differentActivities'
+  | 'redemptionCodes';
 
 export type DbChangeFunction = (transaction: FirebaseFirestore.Transaction, args: any[]) => Promise<void>;

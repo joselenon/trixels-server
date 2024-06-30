@@ -34,7 +34,7 @@ class UserService {
       const userExists = await checkIfUsernameExists(username);
       if (userExists) throw new UsernameAlreadyExistsError();
 
-      const nowTime = new Date().getTime();
+      const nowTime = Date.now();
 
       const encryptedPassword = await encryptString(password);
 
@@ -105,13 +105,13 @@ class UserService {
 
     const { data } = userExists;
 
-    const isPasswordValid = await validateEncryptedString(password, data.result.password);
+    const isPasswordValid = await validateEncryptedString(password, data.docData.password);
     if (!isPasswordValid) throw new InvalidPassword();
 
     return {
       userId: data.docId,
       userCredentials: this.filterUserInfoToFrontEnd({
-        userInfo: data.result,
+        userInfo: data.docData,
         userQueryingIsUserLogged: true,
       }),
     };
@@ -124,7 +124,7 @@ class UserService {
     const isSameUser = usernameLogged === usernameToQuery;
 
     return this.filterUserInfoToFrontEnd({
-      userInfo: userInDb.result,
+      userInfo: userInDb.docData,
       userQueryingIsUserLogged: isSameUser,
     });
   }
@@ -133,13 +133,13 @@ class UserService {
     const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', usernameLogged);
     if (!userInDb) throw new UserNotFound();
 
-    const { email, roninWallet } = userInDb.result;
+    const { email, roninWallet } = userInDb.docData;
 
     const filteredPayload = {} as IUser;
     if (payload.email) {
       filteredPayload.email = {
         lastEmail: email.value,
-        updatedAt: new Date().getTime(),
+        updatedAt: Date.now(),
         value: payload.email,
         verified: false,
       };
@@ -148,7 +148,7 @@ class UserService {
     if (payload.roninWallet) {
       filteredPayload.roninWallet = {
         lastWallet: roninWallet.value,
-        updatedAt: new Date().getTime(),
+        updatedAt: Date.now(),
         value: payload.roninWallet,
         verified: false,
       };
@@ -168,7 +168,7 @@ class UserService {
       encryptedJSON: encryptedWallet,
       walletEncryptionKeyVersion: ENVIRONMENT.WALLETS_ENCRYPTION_KEY_VERSION,
       userRef,
-      createdAt: new Date().getTime(),
+      createdAt: Date.now(),
     };
     await FirebaseInstance.writeDocument('ethereumDepositWallets', dbObj);
 
@@ -204,7 +204,7 @@ class UserService {
       return walletVerificationInRedis;
     }
 
-    const nowDate = new Date().getTime();
+    const nowDate = Date.now();
     function getRandomNumber() {
       const randomNum = Math.random();
       return Number(randomNum.toFixed(8));

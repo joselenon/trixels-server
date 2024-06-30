@@ -24,7 +24,7 @@ import {
 import formatError from '../config/graphql/formatError';
 import { wsContext } from '../config/graphql/context';
 import URLS, { API_BASE } from '../config/constants/URLS';
-import graphQLRoute from '../routes/graphQLRoute';
+import graphQLRouter from '../routes/graphQLRouter';
 import webSocketServerConfig from '../config/app/server/webSocketServerConfig';
 import serverWillStartPlugin from '../config/app/server/serverWillStartPlugin';
 import { sentryPlugin } from '../config/app/server/requestDidStartPlugin';
@@ -76,7 +76,7 @@ class AppService {
   }
 
   private setupEndpoints(): void {
-    this.app.use(graphQLRoute(this.apolloServer));
+    this.app.use(graphQLRouter(this.apolloServer));
     this.app.use(API_BASE, routes);
     this.app.use(errorHandlerMiddleware()); // Final SENTRY middleware
   }

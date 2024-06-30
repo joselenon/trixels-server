@@ -1,4 +1,4 @@
-import { IFirebaseQueryResponse } from './IFirebase';
+import { IFirebaseResponse } from './IFirebase';
 
 export interface IUser {
   username: string;
@@ -44,5 +44,5 @@ export interface IUserToFrontEnd {
 }
 
 export interface IUserControllerGQL {
-  getUser(steamid: string): Promise<IFirebaseQueryResponse<IUser> | null>;
+  getUser(steamid: string): Promise<IFirebaseResponse<IUser> | null>;
 }

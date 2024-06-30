@@ -2,8 +2,9 @@
 import jwt from 'jsonwebtoken';
 
 import JWTConfig from '../config/app/JWTConfig';
-import { AuthError } from '../config/errors/classes/ClientErrors';
+import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
 import { IUserJWTPayload } from '../config/interfaces/IUser';
+import { InvalidJWTError } from '../config/errors/classes/SystemErrors';
 
 export interface IJWTService {
   signJWT(payload: IUserJWTPayload): string | undefined;
@@ -23,7 +24,6 @@ class JWTService implements IJWTService {
     return token;
   }
 
-  /* REFATORAR */
   validateJWT(args: {
     token: string | undefined;
     mustBeAuth: boolean;
@@ -39,6 +39,8 @@ class JWTService implements IJWTService {
 
       if (filteredToken && filteredToken.includes('Bearer')) {
         filteredToken = filteredToken.split('Bearer ')[1];
+      } else {
+        throw new InvalidJWTError();
       }
 
       if (!filteredToken) {
@@ -54,8 +56,7 @@ class JWTService implements IJWTService {
     } catch (err: any) {
       const error = err as Error;
 
-      /* if (error.name === 'TokenExpiredError') throw new JWTExpiredError(); */
-      if (error.name === 'TokenExpiredError') return undefined;
+      if (error.name === 'TokenExpiredError') throw new JWTExpiredError();
       throw err;
     }
   }

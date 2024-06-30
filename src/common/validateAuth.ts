@@ -1,15 +1,16 @@
 import { AuthError } from '../config/errors/classes/ClientErrors';
+import { IFirebaseResponse } from '../config/interfaces/IFirebase';
 import { IUser, IUserJWTPayload } from '../config/interfaces/IUser';
 import JWTService from '../services/JWTService';
 import { checkIfUserExistsByDocId } from './checkIfUserAlreadyExists';
 
 export type TValidateAuthFn = (
   authorization: string | null,
-) => Promise<{ jwtPayload: IUserJWTPayload; userInfo: IUser }>;
+) => Promise<IAuthValidation>;
 
 export interface IAuthValidation {
   jwtPayload: IUserJWTPayload;
-  userInfo: IUser;
+  userDoc: IFirebaseResponse<IUser>;
 }
 
 const validateAuth: TValidateAuthFn = async (authorization: string | null): Promise<IAuthValidation> => {
@@ -23,10 +24,10 @@ const validateAuth: TValidateAuthFn = async (authorization: string | null): Prom
 
   if (!jwtPayload) throw new AuthError();
 
-  const userExists = await checkIfUserExistsByDocId(jwtPayload.userDocId);
-  if (!userExists.docData) throw new AuthError();
+  const userDoc = await checkIfUserExistsByDocId(jwtPayload.userDocId);
+  if (!userDoc.docData) throw new AuthError();
 
-  return { jwtPayload, userInfo: userExists.docData };
+  return { jwtPayload, userDoc };
 };
 
 export default validateAuth;

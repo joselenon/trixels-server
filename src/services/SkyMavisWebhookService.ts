@@ -1,6 +1,6 @@
 import { FirebaseInstance } from '..';
 import { TRIXELS_WALLET_ADDRESS } from '../config/app/System';
-import { IDepositTransactionInDb } from '../config/interfaces/ITransaction';
+import { IDepositTransactionsInDb } from '../config/interfaces/ITransaction';
 import { IUser } from '../config/interfaces/IUser';
 import BalanceUpdateService, { IDepositEnv } from './BalanceUpdateService';
 
@@ -82,7 +82,7 @@ class SkyMavisWebhookService {
   async addressActivity(payload: IAddressActivityPayload) {
     console.log('STARTING');
 
-    const nowTime = new Date().getTime();
+    const nowTime = Date.now();
 
     /* FIX THIS ([0] is wrong) */
     const { fromAddress, value, symbol, toAddress } = payload.event.activities[0];
@@ -106,7 +106,7 @@ class SkyMavisWebhookService {
     }
 
     if (!userId) {
-      return await FirebaseInstance.writeDocument<IDepositTransactionInDb>('transactions', {
+      return await FirebaseInstance.writeDocument<IDepositTransactionsInDb>('transactions', {
         createdAt: nowTime,
         symbol,
         value,

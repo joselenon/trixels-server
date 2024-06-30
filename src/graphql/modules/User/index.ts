@@ -16,7 +16,7 @@ const resolvers = {
         const userData = await UserController.getUser(jwtPayload.userDocId);
         if (!userData) throw new DocumentNotFoundError();
 
-        return responseBody(true, 'GET_USER_INFO', 'GET_MSG', userData.result);
+        return responseBody(true, 'GET_USER_INFO', 'GET_MSG', userData.docData);
       } catch (err) {
         validateAndCaptureError(err);
       }

@@ -10,7 +10,7 @@ export interface IRaffleAnimationAlreadyEndedFn {
 }
 const raffleAnimationAlreadyEndedFn = (finishedAt: number | undefined): IRaffleAnimationAlreadyEndedFn => {
   if (finishedAt) {
-    const nowTime = new Date().getTime();
+    const nowTime = Date.now();
     const diff = finishedAt + TotalTimeToRoll - nowTime;
 
     return { alreadyEnded: diff < 0, timeLeft: diff };

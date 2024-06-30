@@ -21,7 +21,10 @@ export type TGQLResponsesTypes =
   | 'LOG_USER'
   | 'GET_USER_INFO'
   | 'UPDATE_USER_CREDENTIALS'
-  | 'GET_BALANCE';
+  | 'GET_BALANCE'
+  | 'GET_USER_TRANSACTIONS'
+  | 'REDEEM_CODE'
+  | 'GET_DEPOSIT_METHODS';
 
 interface IPubSubEventPayload<D> {
   success: boolean;

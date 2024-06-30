@@ -5,11 +5,11 @@ import { IBetInDB } from '../config/interfaces/IBet';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { InvalidUsername } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager from './PubSubEventManager';
-import { TTransactionInDb } from '../config/interfaces/ITransaction';
+import { TTransactionsInDb } from '../config/interfaces/ITransaction';
 
 class BalanceService {
   static async calculateTransactions(userRef: FirebaseFirestore.DocumentReference) {
-    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<TTransactionInDb>(
+    const userTransactions = await FirebaseInstance.getManyDocumentsByParam<TTransactionsInDb>(
       'transactions',
       'userRef',
       userRef,
@@ -17,12 +17,15 @@ class BalanceService {
     if (!userTransactions) return 0;
 
     const calc = userTransactions.reduce((acc, transaction) => {
-      switch (transaction.result.type) {
+      const { value, type } = transaction.docData;
+
+      switch (type) {
         case 'deposit':
-          acc += transaction.result.value;
+          acc += value;
           break;
+
         case 'withdraw':
-          acc -= transaction.result.value;
+          acc -= value;
           break;
       }
       return acc;
@@ -38,11 +41,13 @@ class BalanceService {
     if (!userBets || userBets.length <= 0) return 0;
 
     const calc = userBets.reduce((acc, bet) => {
-      if (typeof bet.result.amountBet !== 'number' || typeof bet.result.prize !== 'number') {
+      const { amountBet, prize } = bet.docData;
+
+      if (typeof amountBet !== 'number' || typeof prize !== 'number') {
         throw new UnknownError('Invalid bet infos');
       }
 
-      const difference = bet.result.prize - bet.result.amountBet;
+      const difference = prize - amountBet;
       return acc + difference;
     }, 0);
 
@@ -53,11 +58,11 @@ class BalanceService {
 
   // Recalculate all the transactions and bets in order to update the balance (DB, Cache, Client???)
   static async hardUpdateBalances(userDocId: string) {
-    const userRef = (await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId)).result;
+    const { docRef } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
 
     const balanceCalc = async () => {
-      const calculateTransactions = await BalanceService.calculateTransactions(userRef);
-      const calculateBets = await BalanceService.calculateBets(userRef);
+      const calculateTransactions = await BalanceService.calculateTransactions(docRef);
+      const calculateBets = await BalanceService.calculateBets(docRef);
 
       return calculateTransactions + calculateBets;
     };
@@ -74,11 +79,17 @@ class BalanceService {
     // Potential Errors: UnexpectedDatabaseError || RedisError
   }
 
-  static async getUserBalance(userDocId: string): Promise<{ balance: number }> {
-    const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
+  static async getUserBalance(userDocId: string): Promise<{
+    balance: number;
+    docData: IUser;
+    docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData, FirebaseFirestore.DocumentData>;
+  }> {
+    const userInDb = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
     if (!userInDb) throw new InvalidUsername();
 
-    return { balance: userInDb.result.balance };
+    const { docData, docRef } = userInDb;
+
+    return { balance: docData.balance, docData, docRef };
   }
 
   static sendBalancePubSubEvent(userDocId: string, balanceValue: number, sendInTimestamp?: number) {
@@ -92,7 +103,7 @@ class BalanceService {
       };
 
       if (sendInTimestamp) {
-        const nowTime = new Date().getTime();
+        const nowTime = Date.now();
         const timeoutTime = sendInTimestamp - nowTime;
 
         setTimeout(updateBalance, timeoutTime > 0 ? timeoutTime : 0);

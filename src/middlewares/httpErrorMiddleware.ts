@@ -11,12 +11,12 @@ const httpErrorMiddleware = (err: Error, req: Request, res: Response, next: Next
   console.log('err', err);
 
   if (err instanceof ClientError) {
-    res.status(err.getStatus()).json(errorResponse(err.message));
+    res.json(errorResponse(err.message));
     return next();
   }
 
   // In case error is not instance of ClientError (displayable ones), throw a generic one
-  res.status(500).json(errorResponse(RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_MSG));
+  res.json(errorResponse(RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_MSG));
   return next();
 };
 

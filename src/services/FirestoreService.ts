@@ -3,8 +3,8 @@ import * as admin from 'firebase-admin';
 
 import {
   IFirebaseAllDocumentsByCollectionQueryResponse,
-  IFirebaseQueryResponse,
-  IFirebaseQueryResponseWithData,
+  IFirebaseManyDocumentsResponse,
+  IFirebaseResponse,
   TDBCollections,
 } from '../config/interfaces/IFirebase';
 import { DocumentNotFoundError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
@@ -52,7 +52,7 @@ export default class FirestoreService {
     collection: TDBCollections,
     docId: string,
     payload: any /* MUDAR ISSO IMEDIATAMENTE */,
-  ): Promise<IFirebaseQueryResponse<R>> {
+  ): Promise<IFirebaseResponse<R>> {
     try {
       const docRef = await this.firestore.collection(collection).doc(docId);
       const docSnapshot = await docRef.get();
@@ -60,7 +60,7 @@ export default class FirestoreService {
 
       const docData = docSnapshot.data();
       await docRef.update(payload);
-      return { docId, result: { ...docData, ...payload } as R };
+      return { docId, docRef, docData: { ...docData, ...payload } as R };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -68,10 +68,7 @@ export default class FirestoreService {
 
   // Specific query (if the document doesn't exists, it throws an error)
   // IMPORTANT: It throws error in case a docRef.get is requested with an nonexistent docId in db
-  async getDocumentRefWithData<D>(
-    collection: TDBCollections,
-    docId: string,
-  ): Promise<IFirebaseQueryResponseWithData<admin.firestore.DocumentReference<admin.firestore.DocumentData>, D>> {
+  async getDocumentRefWithData<D>(collection: TDBCollections, docId: string): Promise<IFirebaseResponse<D>> {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
 
@@ -82,7 +79,7 @@ export default class FirestoreService {
 
       return {
         docId,
-        result: docRef,
+        docRef,
         docData: docSnapshotData as D,
       };
     } catch (err: any) {
@@ -90,26 +87,7 @@ export default class FirestoreService {
     }
   }
 
-  async getDocumentRef(
-    collection: TDBCollections,
-    docId: string,
-  ): Promise<IFirebaseQueryResponse<admin.firestore.DocumentReference<admin.firestore.DocumentData>>> {
-    try {
-      const docRef = this.firestore.collection(collection).doc(docId);
-
-      const docSnapshot = await docRef.get();
-      if (!docSnapshot.exists) throw new DocumentNotFoundError();
-
-      return {
-        docId,
-        result: docRef,
-      };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
-    }
-  }
-
-  async getDocumentById<R>(collection: TDBCollections, docId: string): Promise<IFirebaseQueryResponse<R> | null> {
+  async getDocumentById<R>(collection: TDBCollections, docId: string): Promise<IFirebaseResponse<R> | null> {
     try {
       const docRef = this.firestore.collection(collection).doc(docId);
       const docSnapshot = await docRef.get();
@@ -117,7 +95,7 @@ export default class FirestoreService {
       if (!docSnapshot.exists) return null;
 
       const docData = docSnapshot.data();
-      return { docId, result: { ...docData } as R };
+      return { docId, docRef, docData: { ...docData } as R };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -127,18 +105,21 @@ export default class FirestoreService {
     collection: TDBCollections,
     param: string,
     paramValue: string | admin.firestore.DocumentReference<admin.firestore.DocumentData>,
-  ): Promise<IFirebaseQueryResponse<R> | null> {
+  ): Promise<IFirebaseResponse<R> | null> {
     try {
-      const docRef = await this.firestore.collection(collection).where(param, '==', paramValue).limit(1);
-      const docSnapshot = await docRef.get();
+      const docQuery = await this.firestore.collection(collection).where(param, '==', paramValue).limit(1);
+      const docSnapshot = await docQuery.get();
       if (docSnapshot.empty) return null;
 
-      const docId = docSnapshot.docs[0].id;
-      const docSnapshotData = docSnapshot.docs[0].data();
+      const queryDocSnapshot = docSnapshot.docs[0];
+      const docId = queryDocSnapshot.id;
+      const docSnapshotData = queryDocSnapshot.data();
+      const docRef = queryDocSnapshot.ref;
 
       return {
         docId: docId as string,
-        result: { ...docSnapshotData } as R,
+        docRef,
+        docData: { ...docSnapshotData } as R,
       };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
@@ -148,24 +129,24 @@ export default class FirestoreService {
   async getManyDocumentsByParam<R>(
     collection: TDBCollections,
     param: string,
-    paramValue: string | any,
-  ): Promise<IFirebaseQueryResponse<R>[] | null> {
+    paramValue: any,
+  ): Promise<IFirebaseManyDocumentsResponse<R>[] | null> {
     try {
-      const docRef = await this.firestore.collection(collection).where(param, '==', paramValue);
+      const docQuery = this.firestore.collection(collection).where(param, '==', paramValue);
+      const querySnapshot = await docQuery.get();
+      if (querySnapshot.empty) return null;
 
-      const docSnapshot = (await docRef.get()).docs;
-
-      const docsDataPromise = docSnapshot.map(async (doc) => {
-        const docResult = doc.data();
-        const obj: IFirebaseQueryResponse<R> = {
+      const docsData = querySnapshot.docs.map((doc) => {
+        const docData = doc.data() as R;
+        const docRef = doc.ref;
+        return {
           docId: doc.id,
-          result: docResult as R,
+          docData,
+          docRef,
         };
-        return obj;
       });
 
-      const docsData = await Promise.all(docsDataPromise);
-      return docsData.length > 0 ? docsData : [];
+      return docsData;
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -224,6 +205,67 @@ export default class FirestoreService {
   ): Promise<admin.firestore.CollectionReference<admin.firestore.DocumentData>> {
     try {
       return this.firestore.collection(collection);
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async getManyDocumentsByParamInChunks<R>({
+    collection,
+    param,
+    paramValue,
+    orderByField,
+    chunkSize,
+    chunkIndex,
+  }: {
+    collection: TDBCollections;
+    param: string;
+    paramValue: any;
+    orderByField: string;
+    chunkSize: number;
+    chunkIndex: number;
+  }): Promise<IFirebaseManyDocumentsResponse<R>[]> {
+    try {
+      const totalSkip = chunkSize * (chunkIndex - 1);
+
+      // Consulta inicial para determinar o ponto de início do chunk
+      const initialQuery = this.firestore
+        .collection(collection)
+        .where(param, '==', paramValue)
+        .orderBy(orderByField, 'asc')
+        .limit(totalSkip + chunkSize);
+
+      const initialSnapshot = await initialQuery.get();
+
+      if (initialSnapshot.empty) return [];
+
+      // Identificar o ponto inicial do chunk atual
+      const startAfterDoc = totalSkip > 0 ? initialSnapshot.docs[totalSkip - 1] : null;
+
+      // Consulta final para pegar o chunk desejado
+      let finalQuery = this.firestore
+        .collection(collection)
+        .where(param, '==', paramValue)
+        .orderBy(orderByField, 'asc')
+        .limit(chunkSize);
+
+      if (startAfterDoc) {
+        finalQuery = finalQuery.startAfter(startAfterDoc);
+      }
+
+      const chunkSnapshot = await finalQuery.get();
+      if (chunkSnapshot.empty) return [];
+
+      const documents = chunkSnapshot.docs.map((doc) => {
+        const docData = doc.data() as R;
+        return {
+          docId: doc.id,
+          docData,
+          docRef: doc.ref,
+        };
+      });
+
+      return documents;
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }

@@ -46,20 +46,19 @@ class RaffleTicketNumbersService {
     const { bets, totalTickets } = this.raffleInRedis.info;
 
     const { info } = buyRaffleTicketPayload;
-    const { randomTicket, ticketNumbers, quantityOfTickets } = info;
+    const { randomTicket, ticketNumbers } = info;
 
-    if (!randomTicket) {
-      if (!ticketNumbers || ticketNumbers.length <= 0) throw new InvalidPayloadError();
-      return ticketNumbers;
-    }
-    if (!quantityOfTickets) throw new InvalidPayloadError();
+    if (randomTicket) {
+      const availableTicketNumbers = this.getAvailableTicketNumbers(bets, totalTickets);
+      if (availableTicketNumbers.length < 1) {
+        throw new QuantityExceedsAvailableTickets({ reqType: 'CREATE_RAFFLE', userId: this.userId });
+      }
 
-    const availableTicketNumbers = this.getAvailableTicketNumbers(bets, totalTickets);
-    if (availableTicketNumbers.length < quantityOfTickets) {
-      throw new QuantityExceedsAvailableTickets({ reqType: 'CREATE_RAFFLE', userId: this.userId });
+      return await this.genRandomTicketNumbers(availableTicketNumbers, 1);
     }
 
-    return await this.genRandomTicketNumbers(availableTicketNumbers, quantityOfTickets);
+    if (!ticketNumbers || ticketNumbers.length <= 0) throw new InvalidPayloadError();
+    return ticketNumbers;
   }
 }
 

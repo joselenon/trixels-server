@@ -1,11 +1,8 @@
-import { FirebaseInstance, RedisInstance } from '..';
+import { FirebaseInstance } from '..';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
-import { IBetInDB, IBetToFrontEnd, IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
+import { IBetInDB, IBetToFrontEnd } from '../config/interfaces/IBet';
 import { TDBGamesCollections } from '../config/interfaces/IFirebase';
-import { IRafflesInRedis } from '../config/interfaces/IRaffles';
 import { IUser } from '../config/interfaces/IUser';
-import getRedisKeyHelper from '../helpers/redisHelper';
-import BalanceUpdateService, { IBuyRaffleTicketEnv } from './BalanceUpdateService';
 
 class BetsService {
   async makeBetObjToFrontEnd(betInDb: IBetInDB, betId: string): Promise<IBetToFrontEnd> {
@@ -15,10 +12,10 @@ class BetsService {
 
     const getUserInfo = async (): Promise<IBetToFrontEnd['userRef'] | undefined> => {
       const userDocId = userRef.id;
-      const docData = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
+      const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
 
-      if (docData) {
-        const { avatar, username } = docData.result;
+      if (userInDb) {
+        const { avatar, username } = userInDb.docData;
         return { avatar, username, userId: userDocId };
       }
     };
@@ -38,7 +35,7 @@ class BetsService {
   }) {
     const { amountBet, gameRef, gameType, userRef } = betOptions;
 
-    const nowTime = new Date().getTime();
+    const nowTime = Date.now();
 
     const betObjToDb: IBetInDB = {
       createdAt: nowTime,
@@ -50,26 +47,6 @@ class BetsService {
     };
 
     return betObjToDb;
-  }
-
-  /* Colocar para utilizar o que tiver no Redis como raffles ativas (Fazer sistema para que ao ligamento do servidor, seja feito uma varredura das raffles ativas e um save no redis) */
-  async buyRaffleTicket(userDocId: string, buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis, betMadeAt: number) {
-    const { gameId } = buyRaffleTicketPayload;
-
-    const allRafflesRedisKey = getRedisKeyHelper('allRaffles');
-    const rafflesInRedis = await RedisInstance.get<IRafflesInRedis>(allRafflesRedisKey, { isJSON: true });
-    if (!rafflesInRedis) throw new UnknownError('No raffle in Redis');
-
-    const { activeRaffles } = rafflesInRedis;
-
-    const raffleInRedis = activeRaffles.find((raffle) => raffle.gameId === gameId);
-    if (!raffleInRedis) throw new UnknownError('Raffle not found while searching on Redis active raffles list.');
-
-    await BalanceUpdateService.addToQueue<IBuyRaffleTicketEnv>({
-      type: 'buyRaffleTicket',
-      userId: userDocId,
-      env: { buyRaffleTicketPayload, raffleInRedis: raffleInRedis, betMadeAt },
-    });
   }
 }
 

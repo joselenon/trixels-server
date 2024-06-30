@@ -22,6 +22,7 @@ const RESPONSE_CONFIG = {
       Register: 'Register',
       UserInfo: 'User Info',
       EnvVariablesMissing: 'Environment Variables Missing',
+      RabbitMQ: 'RabbitMQ',
     },
 
     SYSTEM_ERROR_MSGS: {
@@ -31,6 +32,8 @@ const RESPONSE_CONFIG = {
       ENV_VARIABLES_MISSING: 'You forgot some environment variables: ',
       UNAVAILABLE_AUTH_METHOD: 'Unavailable auth method',
       FORGED_WEBHOOK: 'Webhook forged',
+      RAFFLE_LOST: 'System lost a specific raffle',
+      INVALID_JWT: 'INVALID_JWT',
     },
 
     CLIENT_ERROR_MSGS: {
@@ -52,6 +55,8 @@ const RESPONSE_CONFIG = {
       QUANTITY_EXCEEDS_AVAILABLE_TICKETS: 'Quantity exceeds available tickets',
       WALLET_ALREADY_VERIFIED: 'Wallet already verified',
       WALLET_VERIFICATION: 'Wallet verification failed',
+      UNAVAILABLE_NETWORK: 'This network is currently unavailable',
+      UNAVAILABLE_TOKEN: 'This token is currently unavailable',
     },
   },
 };

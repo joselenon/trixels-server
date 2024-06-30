@@ -19,6 +19,8 @@ const ENDPOINTS = {
   RAFFLES: '/raffles',
   GRAPHQL: '/graphql',
   WEBHOOKS: '/webhooks',
+  DEPOSIT: '/deposit',
+  TRANSACTIONS: '/transactions',
 };
 
 const API_ENDPOINTS = {
@@ -36,6 +38,7 @@ const API_ENDPOINTS = {
     UPDATE_USER_CREDENTIALS: `${ENDPOINTS.USER}/credentials`,
     VERIFY_WALLET: `${ENDPOINTS.USER}/verifywallet`,
     VERIFY_WALLET_CHECK: `${ENDPOINTS.USER}/verifywallet/check`,
+    GET_USER_TRANSACTIONS: `${ENDPOINTS.TRANSACTIONS}`,
   },
   RAFFLES: {
     GET_AVAILABLE_ITEMS: `${ENDPOINTS.RAFFLES}/items`,
@@ -46,6 +49,11 @@ const API_ENDPOINTS = {
   WEBHOOKS: {
     SKY_MAVIS: `${ENDPOINTS.WEBHOOKS}/skymavis`,
   },
+  DEPOSIT: {
+    REDEEM_CODE: `${ENDPOINTS.DEPOSIT}/redeemcode`,
+    GET_DEPOSIT_WALLET: `${ENDPOINTS.DEPOSIT}/getwallet`,
+  },
+  TRANSACTIONS: {},
 };
 
 const URLS = {

@@ -23,7 +23,6 @@ export type TWinnerBetInRedis = {
   hash: string;
   drawnNumber: number;
 };
-
 export type TWinnerBetsInRedis = TWinnerBetInRedis[];
 
 export type TWinnerBetsInDb = {
