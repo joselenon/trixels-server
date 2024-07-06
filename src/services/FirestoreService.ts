@@ -9,6 +9,7 @@ import {
 } from '../config/interfaces/IFirebase';
 import { DocumentNotFoundError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { firebaseApp } from '..';
+import { firestore } from 'firebase-admin';
 
 export default class FirestoreService {
   public firestore: FirebaseFirestore.Firestore;
@@ -130,13 +131,13 @@ export default class FirestoreService {
     collection: TDBCollections,
     param: string,
     paramValue: any,
-  ): Promise<IFirebaseManyDocumentsResponse<R>[] | null> {
+  ): Promise<IFirebaseManyDocumentsResponse<R>> {
     try {
       const docQuery = this.firestore.collection(collection).where(param, '==', paramValue);
       const querySnapshot = await docQuery.get();
-      if (querySnapshot.empty) return null;
+      if (querySnapshot.empty) return { documents: [] };
 
-      const docsData = querySnapshot.docs.map((doc) => {
+      const documents = querySnapshot.docs.map((doc) => {
         const docData = doc.data() as R;
         const docRef = doc.ref;
         return {
@@ -146,7 +147,7 @@ export default class FirestoreService {
         };
       });
 
-      return docsData;
+      return { documents };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }
@@ -216,56 +217,44 @@ export default class FirestoreService {
     paramValue,
     orderByField,
     chunkSize,
-    chunkIndex,
+    config,
   }: {
     collection: TDBCollections;
     param: string;
     paramValue: any;
     orderByField: string;
     chunkSize: number;
-    chunkIndex: number;
-  }): Promise<IFirebaseManyDocumentsResponse<R>[]> {
+    config: { forward: boolean; startAfterDocTimestamp?: number };
+  }): Promise<IFirebaseManyDocumentsResponse<R>> {
     try {
-      const totalSkip = chunkSize * (chunkIndex - 1);
+      const { forward, startAfterDocTimestamp } = config;
 
-      // Consulta inicial para determinar o ponto de início do chunk
-      const initialQuery = this.firestore
+      let query = this.firestore
         .collection(collection)
         .where(param, '==', paramValue)
-        .orderBy(orderByField, 'asc')
-        .limit(totalSkip + chunkSize);
+        .orderBy(orderByField, 'desc')
+        .limit(chunkSize + 1); // +1 para verificar se há mais documentos
 
-      const initialSnapshot = await initialQuery.get();
-
-      if (initialSnapshot.empty) return [];
-
-      // Identificar o ponto inicial do chunk atual
-      const startAfterDoc = totalSkip > 0 ? initialSnapshot.docs[totalSkip - 1] : null;
-
-      // Consulta final para pegar o chunk desejado
-      let finalQuery = this.firestore
-        .collection(collection)
-        .where(param, '==', paramValue)
-        .orderBy(orderByField, 'asc')
-        .limit(chunkSize);
-
-      if (startAfterDoc) {
-        finalQuery = finalQuery.startAfter(startAfterDoc);
+      if (forward && startAfterDocTimestamp) {
+        query = query.startAfter(startAfterDocTimestamp);
+      }
+      if (!forward && startAfterDocTimestamp) {
+        query = query.endBefore(startAfterDocTimestamp);
       }
 
-      const chunkSnapshot = await finalQuery.get();
-      if (chunkSnapshot.empty) return [];
+      const snapshot = await query.get();
 
-      const documents = chunkSnapshot.docs.map((doc) => {
-        const docData = doc.data() as R;
-        return {
-          docId: doc.id,
-          docData,
-          docRef: doc.ref,
-        };
-      });
+      if (snapshot.empty) return { documents: [], hasMore: false };
 
-      return documents;
+      const documents = snapshot.docs.slice(0, chunkSize).map((doc) => ({
+        docId: doc.id,
+        docData: doc.data() as R,
+        docRef: doc.ref,
+      }));
+
+      const hasMore = snapshot.docs.length > chunkSize;
+
+      return { documents, hasMore };
     } catch (err: any) {
       throw new UnexpectedDatabaseError(err);
     }

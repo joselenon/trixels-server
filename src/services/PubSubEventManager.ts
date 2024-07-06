@@ -24,6 +24,7 @@ export type TGQLResponsesTypes =
   | 'GET_BALANCE'
   | 'GET_USER_TRANSACTIONS'
   | 'REDEEM_CODE'
+  | 'REFRESH_ACCESS_TOKEN'
   | 'GET_DEPOSIT_METHODS';
 
 interface IPubSubEventPayload<D> {

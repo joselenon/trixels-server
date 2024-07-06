@@ -3,7 +3,7 @@ import { FirebaseInstance, RedisInstance } from '..';
 import { IUser } from '../config/interfaces/IUser';
 import { IBetInDB } from '../config/interfaces/IBet';
 import { UnknownError } from '../config/errors/classes/SystemErrors';
-import { InvalidUsername } from '../config/errors/classes/ClientErrors';
+import { InvalidUsernameError } from '../config/errors/classes/ClientErrors';
 import PubSubEventManager from './PubSubEventManager';
 import { TTransactionsInDb } from '../config/interfaces/ITransaction';
 
@@ -14,9 +14,10 @@ class BalanceService {
       'userRef',
       userRef,
     );
-    if (!userTransactions) return 0;
+    if (userTransactions.documents.length <= 0) return 0;
 
-    const calc = userTransactions.reduce((acc, transaction) => {
+    const { documents } = userTransactions;
+    const calc = documents.reduce((acc, transaction) => {
       const { value, type } = transaction.docData;
 
       switch (type) {
@@ -38,9 +39,11 @@ class BalanceService {
 
   static async calculateBets(userRef: FirebaseFirestore.DocumentReference) {
     const userBets = await FirebaseInstance.getManyDocumentsByParam<IBetInDB>('bets', 'userRef', userRef);
-    if (!userBets || userBets.length <= 0) return 0;
+    if (userBets.documents.length <= 0) return 0;
 
-    const calc = userBets.reduce((acc, bet) => {
+    const { documents } = userBets;
+
+    const calc = documents.reduce((acc, bet) => {
       const { amountBet, prize } = bet.docData;
 
       if (typeof amountBet !== 'number' || typeof prize !== 'number') {
@@ -85,7 +88,7 @@ class BalanceService {
     docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData, FirebaseFirestore.DocumentData>;
   }> {
     const userInDb = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
-    if (!userInDb) throw new InvalidUsername();
+    if (!userInDb) throw new InvalidUsernameError();
 
     const { docData, docRef } = userInDb;
 

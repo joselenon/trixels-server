@@ -7,9 +7,28 @@ import { AuthError, EmailAlreadyExistsError } from '../config/errors/classes/Cli
 import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
+import CookiesConfig from '../config/app/CookiesConfig';
+import AuthService from '../services/AuthService';
 
 class UserController {
-  /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER */
+  /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER REVIEW */
+  refreshAccessToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const refreshToken = req.cookies.refreshToken as string;
+      if (!refreshToken || typeof refreshToken !== 'string') throw new AuthError();
+
+      console.log(refreshToken);
+      const { accessToken } = await AuthService.refreshAccessToken(refreshToken);
+
+      res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
+      res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
+      res.status(200).json(responseBody(true, 'REFRESH_ACCESS_TOKEN', 'GET_MSG', null));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER REVIEW */
   registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { username, password } = req.body;
@@ -30,9 +49,15 @@ class UserController {
         username,
         password,
       });
-      const genJWT = JWTService.signJWT({ username, userDocId: userCreatedId });
 
-      res.status(200).json(responseBody(true, 'REGISTER_USER', 'REGISTERED_IN', { userCredentials, token: genJWT }));
+      const { accessToken, refreshToken } = await AuthService.genAuthTokens({
+        userId: userCreatedId,
+        username: userCredentials.username,
+      });
+
+      res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
+      res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
+      res.status(200).json(responseBody(true, 'REGISTER_USER', 'REGISTERED_IN', { userCredentials }));
     } catch (err) {
       next(err);
     }
@@ -54,9 +79,14 @@ class UserController {
         password,
       });
 
-      const genJWT = JWTService.signJWT({ username, userDocId: userId });
+      const { accessToken, refreshToken } = await AuthService.genAuthTokens({
+        userId,
+        username: userCredentials.username,
+      });
 
-      res.status(200).json(responseBody(true, 'LOG_USER', 'LOGGED_IN', { userCredentials, token: genJWT }));
+      res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
+      res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
+      res.status(200).json(responseBody(true, 'LOG_USER', 'LOGGED_IN', { userCredentials }));
     } catch (err) {
       next(err);
     }

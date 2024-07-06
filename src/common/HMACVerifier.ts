@@ -7,9 +7,6 @@ export default function HMACVerifier(
   skyMavisSignature: string,
   signingKey = ENVIRONMENT.SKY_MAVIS_WEBHOOK_SIGNATURE,
 ) {
-  console.log('skyMavisSignature', skyMavisSignature);
-  console.log('signingKey', signingKey);
-
   const payloadToJSON = JSON.stringify(payload);
 
   const hmac = crypto.createHmac('sha256', signingKey);

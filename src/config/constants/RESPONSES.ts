@@ -23,6 +23,7 @@ const RESPONSE_CONFIG = {
       UserInfo: 'User Info',
       EnvVariablesMissing: 'Environment Variables Missing',
       RabbitMQ: 'RabbitMQ',
+      WalletVerification: 'Wallet Verification',
     },
 
     SYSTEM_ERROR_MSGS: {
@@ -34,6 +35,7 @@ const RESPONSE_CONFIG = {
       FORGED_WEBHOOK: 'Webhook forged',
       RAFFLE_LOST: 'System lost a specific raffle',
       INVALID_JWT: 'INVALID_JWT',
+      GOOGLE_OAUTH_SYSTEM: 'Something went wrong with GoogleOAuthSystem',
     },
 
     CLIENT_ERROR_MSGS: {
@@ -41,7 +43,7 @@ const RESPONSE_CONFIG = {
       AUTH_MSG: 'Unauthorized',
       INVALID_USERNAME: 'Username or password invalid',
       INVALID_PASSWORD: 'Username or password invalid',
-      JWT_EXPIRED: 'Session expired Please relog',
+      JWT_EXPIRED: 'Token expired',
       CODE_NOT_FOUND: 'Invalid code',
       CODE_USAGE_LIMIT: 'Code reached limit',
       CODE_ALREADY_USED: 'Code already used',
@@ -51,12 +53,14 @@ const RESPONSE_CONFIG = {
       USER_NOT_FOUND: 'User not found',
       INSUFFICIENT_BALANCE: 'Insufficient balance',
       GAME_ALREADY_FINISHED: 'Game already finished',
+      INVALID_LOGIN_METHOD: 'Account used a different method to register',
       TICKET_ALREADY_TAKEN: 'Ticket already taken',
       QUANTITY_EXCEEDS_AVAILABLE_TICKETS: 'Quantity exceeds available tickets',
       WALLET_ALREADY_VERIFIED: 'Wallet already verified',
       WALLET_VERIFICATION: 'Wallet verification failed',
       UNAVAILABLE_NETWORK: 'This network is currently unavailable',
       UNAVAILABLE_TOKEN: 'This token is currently unavailable',
+      WALLET_ALREADY_IN_USE: 'Wallet already in use',
     },
   },
 };

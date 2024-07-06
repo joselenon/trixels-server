@@ -11,9 +11,7 @@ export default function sentryBeforeSendConfig(event: Event) {
       \n Value: ${exception.value}
       \n Stack Trace: ${
         exception.stacktrace && exception.stacktrace.frames
-          ? exception.stacktrace.frames
-              .map((frame) => `${frame.filename}:${frame.lineno}`)
-              .join('\n')
+          ? exception.stacktrace.frames.map((frame) => `${frame.filename}:${frame.lineno}`).join('\n')
           : 'N/A'
       }
       `,

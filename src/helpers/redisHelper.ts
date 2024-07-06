@@ -8,6 +8,7 @@ interface IRedisKeys {
   allRaffles: string;
   balanceUpdateQueue: string;
   walletVerification: string;
+  refreshToken: string;
 }
 
 function getRedisKeyHelper(key: keyof IRedisKeys, value?: string) {

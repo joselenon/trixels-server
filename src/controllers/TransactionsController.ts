@@ -4,19 +4,27 @@ import validateAuth from '../common/validateAuth';
 import TransactionsService from '../services/TransactionsService';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 
+export interface IGetUserTransactionsPayload {
+  forward: boolean;
+  startAfterDocTimestamp?: number;
+}
+
 class TransactionsController {
   async getUserTransactions(req: Request, res: Response, next: NextFunction) {
     try {
       const { authorization = null } = req.headers;
-      const { chunkIndex } = req.body;
-      console.log(chunkIndex);
+      const payload = req.body as IGetUserTransactionsPayload;
 
-      const { jwtPayload, userDoc } = await validateAuth(authorization);
+      const { userDoc } = await validateAuth(authorization);
       const { docRef: userRef } = userDoc;
 
-      if (typeof chunkIndex !== 'number') throw new InvalidPayloadError();
+      const { forward, startAfterDocTimestamp } = payload;
+      if (typeof forward !== 'boolean') throw new InvalidPayloadError();
+      if (startAfterDocTimestamp) {
+        if (typeof startAfterDocTimestamp !== 'number') throw new InvalidPayloadError();
+      }
 
-      const userTransactions = await TransactionsService.getUserTransactions(userRef, chunkIndex);
+      const userTransactions = await TransactionsService.getUserTransactions(userRef, payload);
 
       return res.status(200).json(responseBody(true, 'GET_USER_TRANSACTIONS', 'GET_MSG', userTransactions));
     } catch (err) {

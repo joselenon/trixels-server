@@ -1,10 +1,10 @@
 // In order to deep verification, use common function 'validateAuth' (validates user in DB)
 import jwt from 'jsonwebtoken';
 
-import JWTConfig from '../config/app/JWTConfig';
 import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
 import { IUserJWTPayload } from '../config/interfaces/IUser';
 import { InvalidJWTError } from '../config/errors/classes/SystemErrors';
+import TokensConfig from '../config/app/TokensConfig';
 
 export interface IJWTService {
   signJWT(payload: IUserJWTPayload): string | undefined;
@@ -17,8 +17,8 @@ export interface IJWTService {
 
 class JWTService implements IJWTService {
   signJWT(payload: IUserJWTPayload) {
-    const token = jwt.sign(payload, JWTConfig.secret, {
-      expiresIn: JWTConfig.expiration,
+    const token = jwt.sign(payload, TokensConfig.JWT.secret, {
+      expiresIn: TokensConfig.JWT.expirationInSec,
     });
 
     return token;
@@ -48,14 +48,11 @@ class JWTService implements IJWTService {
         return;
       }
 
-      const validated = jwt.verify(filteredToken, JWTConfig.secret);
-
-      if (!validated && mustBeAuth) throw new AuthError();
+      const validated = jwt.verify(filteredToken, TokensConfig.JWT.secret);
 
       return validated as IUserJWTPayload;
     } catch (err: any) {
       const error = err as Error;
-
       if (error.name === 'TokenExpiredError') throw new JWTExpiredError();
       throw err;
     }

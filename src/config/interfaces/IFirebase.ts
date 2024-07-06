@@ -4,10 +4,15 @@ export interface IFirebaseResponse<D = undefined> {
   docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
 }
 
-export interface IFirebaseManyDocumentsResponse<R> {
+export interface IFirebaseManyDocuments<R> {
   docId: string;
   docData: R;
   docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
+}
+
+export interface IFirebaseManyDocumentsResponse<R> {
+  documents: IFirebaseManyDocuments<R>[];
+  hasMore?: boolean;
 }
 
 export interface IFirebaseAllDocumentsByCollectionQueryResponse<R> {

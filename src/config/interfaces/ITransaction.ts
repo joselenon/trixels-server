@@ -32,12 +32,15 @@ export interface ITransactionToFrontendBase {
   value: number;
 }
 
-export interface IDepositTransactionsToFrontendInDb extends ITransactionToFrontendBase {
+export interface IDepositTransactionsToFrontend extends ITransactionToFrontendBase {
   fromAddress: string | null;
 }
-export interface ICashoutTransactionsToFrontendInDb extends ITransactionToFrontendBase {
+export interface ICashoutTransactionsToFrontend extends ITransactionToFrontendBase {
   toAddress: string;
 }
 
-export type TTransactionToFrontend = IDepositTransactionsToFrontendInDb | ICashoutTransactionsToFrontendInDb;
-export type TTransactionsToFrontend = (IDepositTransactionsToFrontendInDb | ICashoutTransactionsToFrontendInDb)[];
+export type TTransactionToFrontend = IDepositTransactionsToFrontend | ICashoutTransactionsToFrontend;
+export type TTransactionsToFrontend = {
+  transactions: (IDepositTransactionsToFrontend | ICashoutTransactionsToFrontend)[];
+  hasMore?: boolean;
+};

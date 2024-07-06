@@ -10,3 +10,8 @@ Chaves únicas para cada usuário:
 - resources:USERID
 
 */
+
+export interface IRefreshTokenRedisPayload {
+  userId: string;
+  lastAccessToken: string /* JWT */;
+}

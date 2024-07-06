@@ -28,6 +28,7 @@ import graphQLRouter from '../routes/graphQLRouter';
 import webSocketServerConfig from '../config/app/server/webSocketServerConfig';
 import serverWillStartPlugin from '../config/app/server/serverWillStartPlugin';
 import { sentryPlugin } from '../config/app/server/requestDidStartPlugin';
+import cookieParser from 'cookie-parser';
 
 class AppService {
   private app: express.Application;
@@ -66,6 +67,7 @@ class AppService {
   }
 
   private setupMiddlewares(): void {
+    this.app.use(cookieParser());
     this.app.use(corsMiddleware());
     this.app.use(expressJSONMiddleware());
     this.app.use(expressURLEncodedMiddleware());
@@ -83,6 +85,7 @@ class AppService {
 
   public async initialize() {
     this.setupMiddlewares();
+
     await this.apolloServer.start();
     this.setupEndpoints();
 

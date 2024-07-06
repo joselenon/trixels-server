@@ -79,9 +79,8 @@ interface IRonTransferPayload extends WebhookPayload {
 }
 
 class SkyMavisWebhookService {
+  /* REVIEW AND REFACTOR */
   async addressActivity(payload: IAddressActivityPayload) {
-    console.log('STARTING');
-
     const nowTime = Date.now();
 
     /* FIX THIS ([0] is wrong) */
@@ -93,19 +92,41 @@ class SkyMavisWebhookService {
       return;
     }
 
-    const userRelatedToAddress = await FirebaseInstance.getSingleDocumentByParam<IUser>(
+    const userRelatedToAddress = await FirebaseInstance.getManyDocumentsByParam<IUser>(
       'users',
       'roninWallet.value',
       fromAddress,
     );
-    const userId = userRelatedToAddress ? userRelatedToAddress.docId : null;
 
-    /* FIX THIS */
-    if (payload.event.activities.length > 1) {
-      return await FirebaseInstance.writeDocument('differentActivities', { userId, payload });
+    /* Guarantee that only one user can have a specific verified wallet address */
+    const userRelated = userRelatedToAddress.documents.filter((user) => user.docData.roninWallet.verified);
+    let verifiedWalletOwnerId = userRelated.length > 0 ? userRelated[0].docId : null;
+
+    /* Iterar sobre usuarios com a wallet e o que a amount bater, ele verifica! */
+    const checkForWalletVerification = await BalanceUpdateService.checkForWalletVerification({
+      symbol,
+      transactionValue: value,
+      fromAddress: fromAddress,
+    });
+    if (checkForWalletVerification.wasAVerification && checkForWalletVerification.userIdRelatedToVerifiedAddress) {
+      verifiedWalletOwnerId = checkForWalletVerification.userIdRelatedToVerifiedAddress;
+
+      return await BalanceUpdateService.addToQueue<IDepositEnv>({
+        userId: verifiedWalletOwnerId,
+        type: 'walletVerification',
+        env: {
+          transactionInfo: {
+            createdAt: nowTime,
+            symbol,
+            type: 'deposit',
+            value,
+            fromAddress,
+          },
+        },
+      });
     }
 
-    if (!userId) {
+    if (!verifiedWalletOwnerId) {
       return await FirebaseInstance.writeDocument<IDepositTransactionsInDb>('transactions', {
         createdAt: nowTime,
         symbol,
@@ -116,8 +137,13 @@ class SkyMavisWebhookService {
       });
     }
 
+    /* FIX THIS */
+    if (payload.event.activities.length > 1) {
+      return await FirebaseInstance.writeDocument('differentActivities', { payload });
+    }
+
     return await BalanceUpdateService.addToQueue<IDepositEnv>({
-      userId,
+      userId: verifiedWalletOwnerId,
       type: 'deposit',
       env: {
         transactionInfo: {

@@ -1,5 +1,6 @@
 import { FirebaseInstance } from '..';
 import { TTransactionToFrontend, TTransactionsInDb, TTransactionsToFrontend } from '../config/interfaces/ITransaction';
+import { IGetUserTransactionsPayload } from '../controllers/TransactionsController';
 
 class TransactionsService {
   filterTransactionToFrontend(transactionInDb: TTransactionsInDb): TTransactionToFrontend {
@@ -11,21 +12,25 @@ class TransactionsService {
 
   async getUserTransactions(
     userRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData, FirebaseFirestore.DocumentData>,
-    chunkIndex: number,
+    payload: IGetUserTransactionsPayload,
   ): Promise<TTransactionsToFrontend> {
     const userTransactions = await FirebaseInstance.getManyDocumentsByParamInChunks<TTransactionsInDb>({
-      chunkIndex,
-      chunkSize: 10,
       collection: 'transactions',
-      orderByField: 'createdAt',
       param: 'userRef',
       paramValue: userRef,
+      orderByField: 'createdAt',
+      chunkSize: 10,
+      config: payload,
     });
 
-    const transactionsToFrontend =
-      userTransactions && userTransactions.map((transaction) => this.filterTransactionToFrontend(transaction.docData));
+    if (userTransactions.documents.length <= 0) return { transactions: [], hasMore: false };
 
-    return transactionsToFrontend;
+    const { documents, hasMore } = userTransactions;
+    const transactionsToFrontend = documents.map((transaction) =>
+      this.filterTransactionToFrontend(transaction.docData),
+    );
+
+    return { transactions: transactionsToFrontend, hasMore };
   }
 }
 

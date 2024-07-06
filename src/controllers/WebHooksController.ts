@@ -8,12 +8,9 @@ class WebHooksController {
     try {
       const skyMavisSignature = req.headers['x-skymavis-signature'] as string;
 
-      console.log(skyMavisSignature);
-
       const payload = req.body;
       HMACVerifier(payload, skyMavisSignature);
 
-      console.log('Signature is valid!!!');
       await SkyMavisWebhookService.receiveInfo(payload);
 
       res.status(200).json(responseBody(true, 'GET_USER_INFO', 'GENERIC_MSG', null));

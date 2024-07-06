@@ -38,7 +38,7 @@ export interface IDepositEnv {
 
 interface IBalanceUpdateItemPayload<Env> {
   userId: string;
-  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit' | 'refund';
+  type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit' | 'refund' | 'walletVerification';
   env: Env;
 }
 
@@ -119,6 +119,10 @@ class BalanceUpdateService {
 
         case 'refund':
           await this.processRefund({ ...messageToJS, env: messageToJS.env as IReceiveActionEnv });
+          break;
+
+        case 'walletVerification':
+          await this.processWalletVerification({ ...messageToJS, env: messageToJS.env as IDepositEnv });
           break;
       }
     };
@@ -205,38 +209,30 @@ class BalanceUpdateService {
     }
   }
 
+  /* REVIEW */
   async checkForWalletVerification({
-    userId,
     fromAddress,
     transactionValue,
     symbol,
   }: {
-    userId: string;
     fromAddress: string | null;
     transactionValue: number;
     symbol: unknown;
-  }): Promise<{ wasAVerification: boolean; successfulVerification?: boolean }> {
+  }): Promise<{ wasAVerification: boolean; userIdRelatedToVerifiedAddress?: string }> {
     if (symbol !== 'PIXEL' || !fromAddress) {
       return { wasAVerification: false };
     }
 
-    const redisKey = getRedisKeyHelper('walletVerification', userId);
-    const walletVerificationItem = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
+    const redisKey = getRedisKeyHelper('walletVerification', fromAddress);
+    const walletVerificationItems =
+      (await RedisInstance.lRange<IWalletVerificationInRedis>(redisKey, { start: 0, end: -1 }, { isJSON: true })) || [];
+    const walletVerificationItemRelated = walletVerificationItems.find(
+      (item) => parseFloat(item.randomValue.toFixed(7)) === transactionValue,
+    );
 
-    if (walletVerificationItem) {
-      const { randomValue, roninWallet } = walletVerificationItem;
+    if (!walletVerificationItemRelated) return { wasAVerification: false };
 
-      /* A way to fix the round value that sky mavis webhook returns */
-      const randomNumberRounded = parseFloat(randomValue.toFixed(7));
-
-      if (transactionValue === randomNumberRounded && fromAddress === roninWallet) {
-        return { wasAVerification: true, successfulVerification: true };
-      }
-
-      return { wasAVerification: true, successfulVerification: false };
-    }
-
-    return { wasAVerification: false };
+    return { wasAVerification: true, userIdRelatedToVerifiedAddress: walletVerificationItemRelated.userId };
   }
 
   async processDeposit(item: IBalanceUpdateItemPayload<IDepositEnv>) {
@@ -262,18 +258,41 @@ class BalanceUpdateService {
         const newBalance = calcWithDecimalsService(userData.balance, 'add', value);
         transaction.update(userRef, { balance: newBalance });
 
-        if (value < 1) {
-          const { wasAVerification, successfulVerification } = await this.checkForWalletVerification({
-            userId,
-            symbol,
-            transactionValue: value,
-            fromAddress: fromAddress,
-          });
+        BalanceService.sendBalancePubSubEvent(userId, newBalance);
+      });
+    } catch (err) {
+      if (err instanceof SystemError) {
+        throw new ProcessDepositError(JSON.stringify(item));
+      }
+    }
+  }
 
-          if (wasAVerification && successfulVerification) {
-            transaction.update(userRef, { 'roninWallet.verified': true });
-          }
-        }
+  async processWalletVerification(item: IBalanceUpdateItemPayload<IDepositEnv>) {
+    try {
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        const nowTime = Date.now();
+
+        const { env, userId } = item;
+        const { transactionInfo } = env;
+        const { value, symbol, fromAddress } = transactionInfo;
+
+        const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
+        const { docData: userData, docRef: userRef } = userRefQuery;
+
+        const transactionsCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
+        const newTransactionRef = transactionsCollectionRef.doc();
+
+        const transactionInDbPayload: IDepositTransactionsInDb = {
+          ...transactionInfo,
+          userRef,
+        };
+
+        transaction.set(newTransactionRef, transactionInDbPayload);
+
+        const newBalance = calcWithDecimalsService(userData.balance, 'add', value);
+        transaction.update(userRef, { balance: newBalance });
+
+        transaction.update(userRef, { 'roninWallet.verified': true, 'roninWallet.verifiedAt': nowTime });
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
       });

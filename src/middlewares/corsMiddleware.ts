@@ -5,5 +5,5 @@ import URLS from '../config/constants/URLS';
 
 //FALSE CREDENTIALS!!!!
 export default function corsMiddleware() {
-  return cors({ origin: URLS.MAIN_URLS.CLIENT_FULL_URL, credentials: false });
+  return cors({ origin: URLS.MAIN_URLS.CLIENT_FULL_URL, credentials: true });
 }

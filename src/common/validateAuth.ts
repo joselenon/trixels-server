@@ -4,9 +4,7 @@ import { IUser, IUserJWTPayload } from '../config/interfaces/IUser';
 import JWTService from '../services/JWTService';
 import { checkIfUserExistsByDocId } from './checkIfUserAlreadyExists';
 
-export type TValidateAuthFn = (
-  authorization: string | null,
-) => Promise<IAuthValidation>;
+export type TValidateAuthFn = (authorization: string | null) => Promise<IAuthValidation>;
 
 export interface IAuthValidation {
   jwtPayload: IUserJWTPayload;

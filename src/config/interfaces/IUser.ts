@@ -2,20 +2,23 @@ import { IFirebaseResponse } from './IFirebase';
 
 export interface IUser {
   username: string;
-  password: string;
+  password: string | null;
   avatar: string;
   balance: number;
   email: {
     value: string;
-    verified: boolean;
     lastEmail: string;
     updatedAt: number;
+    verified: boolean;
+    verifiedAt?: number;
+    googleSub?: string /* Unique id to identify an user despite an email change */;
   };
   roninWallet: {
     value?: string;
     lastWallet?: string;
     updatedAt: number;
     verified: boolean;
+    verifiedAt?: number;
   };
   createdAt: number;
 }

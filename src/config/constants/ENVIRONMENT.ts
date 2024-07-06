@@ -20,9 +20,10 @@ const ENVIRONMENT = {
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID as string,
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY as string,
   FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL as string,
-  GOOGLE_API_KEY: process.env.GOOGLE_API_KEY as string,
   JWT_SECRET: process.env.JWT_SECRET as string,
   SKY_MAVIS_WEBHOOK_SIGNATURE: process.env.SKY_MAVIS_WEBHOOK_SIGNATURE as string,
+  GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID as string,
+  GOOGLE_OAUTH_CLIENT_SECRET_KEY: process.env.GOOGLE_OAUTH_CLIENT_SECRET_KEY as string,
 };
 
 const requiredVariables = [
@@ -38,9 +39,10 @@ const requiredVariables = [
   'FIREBASE_PROJECT_ID',
   'FIREBASE_PRIVATE_KEY',
   'FIREBASE_CLIENT_EMAIL',
-  'GOOGLE_API_KEY',
   'JWT_SECRET',
   'SKY_MAVIS_WEBHOOK_SIGNATURE',
+  'GOOGLE_OAUTH_CLIENT_ID',
+  'GOOGLE_OAUTH_CLIENT_SECRET_KEY',
 ];
 
 const missingVariables = requiredVariables.filter((variable) => !process.env[variable]);

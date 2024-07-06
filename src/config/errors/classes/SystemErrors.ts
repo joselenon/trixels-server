@@ -100,3 +100,21 @@ export class InvalidJWTError extends SystemError {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }
+
+export class GoogleOAuthSystemError extends SystemError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.GOOGLE_OAUTH_SYSTEM) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class SuspiciousAuthError extends SystemError {
+  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.GOOGLE_OAUTH_SYSTEM) {
+    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class InvalidRefreshToken extends SystemError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.AUTH_MSG) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}

@@ -2,16 +2,24 @@ import ENVIRONMENT from './ENVIRONMENT';
 
 const PROTOCOL = ENVIRONMENT.HTTPS ? 'https://' : 'http://';
 
+/* __SERVER__ */
+/* https://serverdomain.com OU http://localhost */
 const SERVER_URL = `${PROTOCOL}${ENVIRONMENT.SERVER_DOMAIN}`;
+/* SERVER PORT */
 const SERVER_PORT = ENVIRONMENT.SERVER_PORT;
+/* https://serverdomain.com OU http://localhost:PORT */
 const SERVER_FULL_URL = ENVIRONMENT.MODE === 'DEVELOPMENT' ? `${SERVER_URL}:${SERVER_PORT}` : SERVER_URL;
-
-const CLIENT_URL = `${PROTOCOL}${ENVIRONMENT.CLIENT_DOMAIN}`;
-const CLIENT_PORT = ENVIRONMENT.CLIENT_PORT;
-const CLIENT_FULL_URL = ENVIRONMENT.MODE === 'DEVELOPMENT' ? `${CLIENT_URL}:${CLIENT_PORT}` : CLIENT_URL;
-
+/* https://serverdomain.com/api OU http://localhost:PORT/api */
 export const API_BASE = '/api';
-const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
+export const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
+
+/* __CLIENT__ */
+/* https://clientdomain.com OU http://localhost */
+const CLIENT_URL = `${PROTOCOL}${ENVIRONMENT.CLIENT_DOMAIN}`;
+/* CLIENT PORT */
+const CLIENT_PORT = ENVIRONMENT.CLIENT_PORT;
+/* https://clientdomain.com OU http://localhost:PORT */
+export const CLIENT_FULL_URL = ENVIRONMENT.MODE === 'DEVELOPMENT' ? `${CLIENT_URL}:${CLIENT_PORT}` : CLIENT_URL;
 
 const ENDPOINTS = {
   AUTH: '/auth',
@@ -31,6 +39,11 @@ const API_ENDPOINTS = {
     },
     REGISTER: `${ENDPOINTS.AUTH}/register`,
     LOGIN: `${ENDPOINTS.AUTH}/login`,
+    REFRESH_ACCESS_TOKEN: '/refreshaccesstoken',
+    GOOGLE_LOGIN: {
+      initial: `${ENDPOINTS.AUTH}/google`,
+      callback: `${ENDPOINTS.AUTH}/google/callback`,
+    },
   },
   USER: {
     GET_USER_INFO: `${ENDPOINTS.USER}`,

@@ -1,14 +1,16 @@
 import { FirebaseInstance, RedisInstance } from '..';
 import cutWalletAddress from '../common/cutWalletAddress';
 import {
-  InvalidPassword,
-  InvalidUsername,
+  InvalidLoginMethodError,
+  InvalidPasswordError,
+  InvalidUsernameError,
   UserNotFound,
   UsernameAlreadyExistsError,
+  WalletAlreadyInUseError,
   WalletAlreadyVerifiedError,
   WalletVerificationError,
 } from '../config/errors/classes/ClientErrors';
-import { UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
+import { GoogleOAuthSystemError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
@@ -16,10 +18,18 @@ import { checkIfUsernameExists } from '../common/checkIfUserAlreadyExists';
 import getRedisKeyHelper from '../helpers/redisHelper';
 import { WALLET_VERIFICATION_EXPIRATION_IN_SECONDS } from '../config/app/System';
 import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
+import AxiosService from './AxiosService';
 
 export interface IUpdateUserCredentialsPayload {
   email?: string;
   roninWallet?: string;
+}
+
+interface IGoogleApisUserInfo {
+  sub: string;
+  name: string;
+  picture: string;
+  email: string;
 }
 
 class UserService {
@@ -49,6 +59,54 @@ class UserService {
           verified: false,
           lastEmail: '',
           updatedAt: nowTime,
+        },
+        roninWallet: {
+          value: '',
+          lastWallet: '',
+          verified: false,
+          updatedAt: nowTime,
+        },
+        createdAt: nowTime,
+      };
+
+      const { docId } = await FirebaseInstance.writeDocument('users', userInDbObj);
+      return { userCredentials: userInDbObj, userCreatedId: docId };
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async registerUserThroughGoogle({
+    googleName,
+    avatar,
+    emailValue,
+    googleSub,
+  }: {
+    googleName: string;
+    avatar: string;
+    emailValue: string;
+    googleSub: string;
+  }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
+    try {
+      const customName = googleName.replace(' ', '');
+
+      const userExists = await checkIfUsernameExists(customName);
+      if (userExists) throw new UsernameAlreadyExistsError();
+
+      const nowTime = Date.now();
+
+      /* REVIEW QUESTÃO DO PASSWORD E RETORNO PARA O FRONT!!!!!! */
+      const userInDbObj: IUser = {
+        username: customName,
+        password: null,
+        avatar,
+        balance: 0,
+        email: {
+          value: emailValue,
+          verified: true,
+          lastEmail: '',
+          updatedAt: nowTime,
+          googleSub,
         },
         roninWallet: {
           value: '',
@@ -97,24 +155,94 @@ class UserService {
   }
 
   async loginUser({ username, password }: { username: string; password: string }): Promise<{
-    userCredentials: IUserToFrontEnd;
     userId: string;
+    userCredentials: IUserToFrontEnd;
   }> {
     const userExists = await checkIfUsernameExists(username);
-    if (!userExists) throw new InvalidUsername();
+    if (!userExists) throw new InvalidUsernameError();
 
-    const { data } = userExists;
+    const { data: userData } = userExists;
+    const userEncryptedPassword = userData.docData.password;
 
-    const isPasswordValid = await validateEncryptedString(password, data.docData.password);
-    if (!isPasswordValid) throw new InvalidPassword();
+    if (!userEncryptedPassword) throw new InvalidLoginMethodError();
+
+    const isPasswordValid = await validateEncryptedString(password, userEncryptedPassword);
+    if (!isPasswordValid) throw new InvalidPasswordError();
 
     return {
-      userId: data.docId,
+      userId: userData.docId,
       userCredentials: this.filterUserInfoToFrontEnd({
-        userInfo: data.docData,
+        userInfo: userData.docData,
         userQueryingIsUserLogged: true,
       }),
     };
+  }
+
+  async loginUserThroughGoogle(accessToken: string): Promise<{
+    userCredentials: IUserToFrontEnd;
+    userDocId: string;
+  }> {
+    const googleAuthResponse = await AxiosService<IGoogleApisUserInfo>({
+      url: `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`,
+      method: 'get',
+    });
+    if (!googleAuthResponse.data) throw new GoogleOAuthSystemError();
+
+    const { email: googleEmail, name: googleName, picture: googleAvatar, sub: googleSub } = googleAuthResponse.data;
+
+    const usersRelatedToEmail = await FirebaseInstance.getManyDocumentsByParam<IUser>(
+      'users',
+      'email.value',
+      googleEmail,
+    );
+
+    /* If there's no user with the email yet, start an account creation */
+    if (usersRelatedToEmail.documents.length <= 0) {
+      const { userCredentials, userCreatedId } = await this.registerUserThroughGoogle({
+        googleName,
+        emailValue: googleEmail,
+        avatar: googleAvatar,
+        googleSub,
+      });
+
+      return { userCredentials, userDocId: userCreatedId };
+    }
+
+    const userRelatedToVerifiedEmail = usersRelatedToEmail.documents.find((user) => user.docData.email.verified);
+    if (!userRelatedToVerifiedEmail) throw new Error('user didnt verified email');
+
+    const userDocId = userRelatedToVerifiedEmail.docId;
+    const userDocData = userRelatedToVerifiedEmail.docData;
+
+    return {
+      userCredentials: this.filterUserInfoToFrontEnd({
+        userInfo: userDocData,
+        userQueryingIsUserLogged: true,
+      }),
+      userDocId,
+    };
+  }
+
+  async verifyEmail(userId: string, userEmail: string, accessToken: string) {
+    const nowTime = Date.now();
+
+    const googleAuthResponse = await AxiosService<IGoogleApisUserInfo>({
+      url: `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`,
+      method: 'get',
+    });
+    if (!googleAuthResponse.data) throw new GoogleOAuthSystemError();
+
+    const { sub: googleSub, email: googleEmail } = googleAuthResponse.data;
+
+    if (userEmail !== googleEmail) throw new Error('Emails não batem');
+
+    await FirebaseInstance.updateDocument('users', userId, {
+      'email.verified': true,
+      'email.googleSub': googleSub,
+      'email.verifiedAt': nowTime,
+    });
+
+    return true;
   }
 
   async getUserInDb(usernameLogged: string | undefined, usernameToQuery: string): Promise<IUserToFrontEnd> {
@@ -134,6 +262,16 @@ class UserService {
     if (!userInDb) throw new UserNotFound();
 
     const { email, roninWallet } = userInDb.docData;
+
+    const usersWithSameWallet = await FirebaseInstance.getManyDocumentsByParam<IUser>(
+      'users',
+      'roninWallet.value',
+      roninWallet,
+    );
+
+    usersWithSameWallet.documents.forEach((user) => {
+      if (user.docData.roninWallet.verified) throw new WalletAlreadyInUseError();
+    });
 
     const filteredPayload = {} as IUser;
     if (payload.email) {
@@ -197,11 +335,13 @@ class UserService {
     if (!roninWallet.value) throw new WalletVerificationError();
     if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
 
-    const redisKey = getRedisKeyHelper('walletVerification', userId);
-    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
+    const redisKey = getRedisKeyHelper('walletVerification', roninWallet.value);
+    const walletVerificationInRedis =
+      (await RedisInstance.lRange<IWalletVerificationInRedis>(redisKey, { start: 0, end: -1 }, { isJSON: true })) || [];
 
-    if (walletVerificationInRedis) {
-      return walletVerificationInRedis;
+    const isUserAlreadyVerifyingAddress = walletVerificationInRedis.find((item) => item.userId === userId);
+    if (isUserAlreadyVerifyingAddress) {
+      return isUserAlreadyVerifyingAddress;
     }
 
     const nowDate = Date.now();
@@ -218,7 +358,7 @@ class UserService {
       ...randomValueToSend,
     };
 
-    await RedisInstance.set(
+    await RedisInstance.rPush(
       redisKey,
       walletVerificationRedisPayload,
       { isJSON: true },
@@ -226,6 +366,14 @@ class UserService {
     );
 
     return walletVerificationRedisPayload;
+  }
+
+  async getUserCredentialsById(userId: string, userQueryingIsUserLogged: boolean) {
+    const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userId);
+    if (!userInDb) throw new UserNotFound();
+
+    const userToFrontend = this.filterUserInfoToFrontEnd({ userInfo: userInDb.docData, userQueryingIsUserLogged });
+    return userToFrontend;
   }
 }
 
