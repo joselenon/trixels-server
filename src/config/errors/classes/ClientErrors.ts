@@ -43,13 +43,13 @@ export class InvalidUsernameError extends ClientError {
 
 export class InvalidPasswordError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_PASSWORD) {
-    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization, 401);
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization, 403);
   }
 }
 
 export class InvalidLoginMethodError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INVALID_LOGIN_METHOD) {
-    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization, 401);
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization, 403);
   }
 }
 

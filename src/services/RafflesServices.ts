@@ -38,6 +38,8 @@ import PubSubEventManager, { IPubSubCreateRaffleData } from './PubSubEventManage
 import BetsService from './BetsService';
 import RaffleTicketNumbersService from './RaffleTicketNumbersService';
 import BetValidatorService from './BetValidatorService';
+import { IFirebaseResponse } from '../config/interfaces/IFirebase';
+import { IUser } from '../config/interfaces/IUser';
 
 class RaffleUtils {
   static verifyItemsAvailability(prizesIds: string[]) {
@@ -232,10 +234,11 @@ class RaffleUtils {
     const results = await Promise.all(
       raffleBetsInDb.map(async (betRef) => {
         const docId = betRef.id;
-        const betInDb = await FirebaseInstance.getDocumentById<IBetInDB>('bets', docId);
-        if (!betInDb || !betInDb.docData) return undefined;
+        /*         const betInDb = await FirebaseInstance.getDocumentById<IBetInDB>('bets', docId); */
+        const betInDb = (await betRef.get()).data() as IBetInDB;
+        /*         if (!betInDb || !betInDb.docData) return undefined; */
 
-        const betToFrontEnd = await BetsService.makeBetObjToFrontEnd(betInDb.docData, docId);
+        const betToFrontEnd = await BetsService.makeBetObjToFrontEnd(betInDb, docId);
         return betToFrontEnd;
       }),
     );
@@ -265,39 +268,57 @@ class RaffleUtils {
   }
 
   static async filterRaffleToFrontEnd(gameId: string, raffleInDb: IRaffleInDb): Promise<IRaffleToFrontEnd> {
-    if (!raffleInDb) throw new UnknownError('Raffle not found while filtering to Front End');
+    try {
+      if (!raffleInDb) throw new UnknownError('Raffle not found while filtering to Front End');
 
-    const raffleInDbData = raffleInDb;
+      const raffleInDbData = raffleInDb;
 
-    const { createdAt, finishedAt } = raffleInDbData;
-    const { bets, winnersBetsInfo, prizes } = raffleInDbData.info;
+      const { createdAt, createdBy, finishedAt } = raffleInDbData;
+      const { bets, winnersBetsInfo, prizes } = raffleInDbData.info;
 
-    const filteredFinishedAt = finishedAt ? finishedAt.toString() : undefined;
-    const filteredCreatedAt = createdAt.toString();
+      const filteredFinishedAt = finishedAt ? finishedAt.toString() : undefined;
+      const filteredCreatedAt = createdAt.toString();
 
-    const filterPrizes = (prizes: TRaffleWinnersPrizes) => {
-      return JSON.stringify(prizes);
-    };
+      const filterPrizes = (prizes: TRaffleWinnersPrizes) => {
+        return JSON.stringify(prizes);
+      };
 
-    const filteredBets = await RaffleUtils.filterBetsDBToData(bets);
+      let filteredCreatedBy: IRaffleToFrontEnd['createdBy'] = {
+        avatar: '',
+        userId: 'USER_DELETED',
+        username: 'USER_DELETED',
+      };
+      const createdByUserData = (await createdBy.get()).data() as IUser | undefined;
+      if (createdByUserData) {
+        const createdByUserId = createdBy.id;
+        const { avatar, username } = createdByUserData;
+        filteredCreatedBy = { avatar, userId: createdByUserId, username };
+      }
 
-    const filteredPrizes = await filterPrizes(prizes);
-    const filteredWinnersBets = await RaffleUtils.filterWinnersBets(winnersBetsInfo);
+      const filteredBets = await RaffleUtils.filterBetsDBToData(bets);
 
-    const filteredInfo: IRaffleToFrontEnd['info'] = {
-      ...raffleInDbData.info,
-      bets: filteredBets,
-      winnersBetsInfo: filteredWinnersBets,
-      prizes: filteredPrizes,
-    };
+      const filteredPrizes = filterPrizes(prizes);
+      const filteredWinnersBets = await RaffleUtils.filterWinnersBets(winnersBetsInfo);
 
-    return {
-      ...raffleInDbData,
-      info: filteredInfo,
-      gameId,
-      createdAt: filteredCreatedAt,
-      finishedAt: filteredFinishedAt,
-    };
+      const filteredInfo: IRaffleToFrontEnd['info'] = {
+        ...raffleInDbData.info,
+        bets: filteredBets,
+        winnersBetsInfo: filteredWinnersBets,
+        prizes: filteredPrizes,
+      };
+
+      return {
+        ...raffleInDbData,
+        info: filteredInfo,
+        createdBy: filteredCreatedBy,
+        gameId,
+        createdAt: filteredCreatedAt,
+        finishedAt: filteredFinishedAt,
+      };
+    } catch (err: unknown) {
+      console.log('filterRaffleToFrontEnd err: ', err);
+      throw err;
+    }
   }
 
   static async getRafflesFromRedis(): Promise<IRafflesInRedis | null> {
@@ -527,7 +548,7 @@ class RaffleUtils {
         const relatedBet = betsRelatedToDrawNumbers.find((bet) => bet.info.tickets.includes(drawnNumberInfo.number));
         if (!relatedBet) throw new UnknownError('Error getting related bet. Bet not found.');
 
-        const { docRef } = await FirebaseInstance.getDocumentRefWithData('bets', relatedBet.betId);
+        const { docRef } = await FirebaseInstance.getDocumentRefWithData<IBetInDB>('bets', relatedBet.betId);
         return { drawnNumber: drawnNumberInfo.number, hash: drawnNumberInfo.hash, betRef: docRef };
       }),
     );
@@ -541,17 +562,23 @@ class CreateRaffle {
   private privacy: IRaffleCreationPayload['privacy'];
   private prizes: IRaffleCreationPayload['prizes'];
   private totalTickets: IRaffleCreationPayload['totalTickets'];
-  private userId: string;
+  private userDoc: IFirebaseResponse<IUser>;
   private description: string;
 
-  constructor({ raffleCreationPayload, userId }: { raffleCreationPayload: IRaffleCreationPayload; userId: string }) {
+  constructor({
+    raffleCreationPayload,
+    userDoc,
+  }: {
+    raffleCreationPayload: IRaffleCreationPayload;
+    userDoc: IFirebaseResponse<IUser>;
+  }) {
     const { discountPercentage, privacy, prizes, totalTickets, description } = raffleCreationPayload;
 
     this.discountPercentage = discountPercentage;
     this.privacy = privacy;
     this.prizes = prizes;
     this.totalTickets = totalTickets;
-    this.userId = userId;
+    this.userDoc = userDoc;
     this.description = description;
   }
 
@@ -575,6 +602,7 @@ class CreateRaffle {
 
     const raffleObjToDb: IRaffleInDb = {
       createdAt: nowTime,
+      createdBy: this.userDoc.docRef,
       updatedAt: nowTime,
       type: 'raffles',
       description,
@@ -589,8 +617,9 @@ class CreateRaffle {
       },
     };
 
+    /* Ver se não seria uma boa passar o userDoc inteiro ao inves de somente o ID (mais tarde) REVIEW */
     const authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
-      userId: this.userId,
+      userId: this.userDoc.docId,
       type: 'createRaffle',
       env: { totalAmountBet: raffleOwnerCost },
     });
@@ -601,7 +630,8 @@ class CreateRaffle {
     let newRaffleId = '';
 
     await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', this.userId);
+      /* Checar se é necessario fazer outra requisição do usuário */
+      const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', this.userDoc.docId);
 
       const rafflesCollectionRef = await FirebaseInstance.getCollectionRef('raffles');
       const newRaffleRef = rafflesCollectionRef.doc();
@@ -635,7 +665,7 @@ class CreateRaffle {
           type: 'CREATE_RAFFLE',
           data: JSON.stringify(pubSubData),
         },
-        this.userId,
+        this.userDoc.docId,
       );
     });
   }

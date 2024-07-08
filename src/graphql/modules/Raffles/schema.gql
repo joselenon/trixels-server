@@ -26,6 +26,7 @@ type WinnerBetInfo {
 
 type RaffleToFrontEnd {
   gameId: String!
+  createdBy: BetterInfo!
   createdAt: String!
   finishedAt: String
   type: String!

@@ -14,7 +14,7 @@
 
     /* Emit */
     "outDir": "./build",
-    "sourceMap": false,
+    "sourceMap": true,
     "removeComments": true,
 
     /* Interop Constraints */

@@ -13,12 +13,18 @@ class UserController {
   /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER REVIEW */
   registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, confirmPassword } = req.body;
 
       if (!username || typeof username !== 'string') {
         throw new InvalidPayloadError();
       }
       if (!password || typeof password !== 'string') {
+        throw new InvalidPayloadError();
+      }
+      if (!confirmPassword || typeof confirmPassword !== 'string') {
+        throw new InvalidPayloadError();
+      }
+      if (password !== confirmPassword) {
         throw new InvalidPayloadError();
       }
 
@@ -190,6 +196,8 @@ class UserController {
 
       await AuthService.validateAccessToken(refreshToken, accessToken);
 
+      res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
+      res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
       res.status(200).json(responseBody(true, 'REFRESH_ACCESS_TOKEN', 'GET_MSG', null));
     } catch (err) {
       next(err);

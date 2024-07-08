@@ -102,14 +102,10 @@ export default class RedisService {
   }
 
   // Add element to the right of a list
-  async rPush<T>(key: TRedisKeys, value: T, options?: TRedisOptions, expirationInSeconds: number | null = null) {
+  async rPush<T>(key: TRedisKeys, value: T, options?: TRedisOptions) {
     const syncRPush = this.promisifyCommand('rpush');
 
     const args: any[] = [key, options?.isJSON ? JSON.stringify(value) : value];
-    if (expirationInSeconds) {
-      args.push('EX', expirationInSeconds);
-    }
-
     const fn = async () => await syncRPush(...args);
     const data = await this.retryWithBackoff(fn);
 

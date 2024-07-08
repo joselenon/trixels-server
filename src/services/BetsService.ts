@@ -1,5 +1,4 @@
 import { FirebaseInstance } from '..';
-import { UnknownError } from '../config/errors/classes/SystemErrors';
 import { IBetInDB, IBetToFrontEnd } from '../config/interfaces/IBet';
 import { TDBGamesCollections } from '../config/interfaces/IFirebase';
 import { IUser } from '../config/interfaces/IUser';
@@ -10,19 +9,23 @@ class BetsService {
 
     const gameId = gameRef.id;
 
-    const getUserInfo = async (): Promise<IBetToFrontEnd['userRef'] | undefined> => {
+    const getUserInfo = async (): Promise<IBetToFrontEnd['userRef']> => {
       const userDocId = userRef.id;
-      const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
+      /*       const userDocId = userRef.id;
+      const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId); */
+      const userInDb = (await (await userRef.get()).data()) as IUser;
 
       if (userInDb) {
-        const { avatar, username } = userInDb.docData;
+        /*         const { avatar, username } = userInDb.docData; */
+        const { avatar, username } = userInDb;
         return { avatar, username, userId: userDocId };
+      } else {
+        /* REVIEW */
+        return { avatar: 'DELETED_USER', userId: 'DELETED_USER', username: 'DELETED_USER' };
       }
     };
 
     const filteredUserRef = await getUserInfo();
-    if (!filteredUserRef) throw new UnknownError('ERROR WITH BETTER INFO');
-
     return { gameId, amountBet, createdAt, info, prize, userRef: filteredUserRef, betId };
   }
 

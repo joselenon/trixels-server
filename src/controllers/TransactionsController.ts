@@ -12,10 +12,10 @@ export interface IGetUserTransactionsPayload {
 class TransactionsController {
   async getUserTransactions(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.cookies.accessToken;
+      const token = req.cookies.accessToken as string;
       const payload = req.body as IGetUserTransactionsPayload;
 
-      const { userDoc } = await JWTService.validateJWT(token);
+      const { userDoc } = await JWTService.validateJWT({ token });
       const { docRef: userRef } = userDoc;
 
       const { forward, startAfterDocTimestamp } = payload;

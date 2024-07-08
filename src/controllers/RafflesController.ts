@@ -29,7 +29,7 @@ class RafflesController {
       const validatedPayload = PayloadValidator.validateRaffleCreationPayload(raffleCreationPayload);
 
       const raffleIdResponse = await new CreateRaffle({
-        userId: userDoc.docId,
+        userDoc,
         raffleCreationPayload: validatedPayload,
       }).create();
       res.status(200).json(responseBody(true, 'CREATE_RAFFLE', 'GET_MSG', raffleIdResponse));

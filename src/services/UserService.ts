@@ -33,6 +33,54 @@ interface IGoogleApisUserInfo {
 }
 
 class UserService {
+  isUsernameValid(username: string) {
+    const regex = /^[a-zA-Z0-9]{5,}$/;
+    return regex.test(username);
+  }
+
+  filterCustomUsername(username: string) {
+    let customFilteredUsername = username;
+    /* Replace special characters and makes it lowercase */
+    const replacements: { [key: string]: string } = {
+      á: 'a',
+      à: 'a',
+      â: 'a',
+      ã: 'a',
+      ä: 'a',
+      å: 'a',
+      é: 'e',
+      è: 'e',
+      ê: 'e',
+      ë: 'e',
+      í: 'i',
+      ì: 'i',
+      î: 'i',
+      ï: 'i',
+      ó: 'o',
+      ò: 'o',
+      ô: 'o',
+      õ: 'o',
+      ö: 'o',
+      ú: 'u',
+      ù: 'u',
+      û: 'u',
+      ü: 'u',
+      ç: 'c',
+      ñ: 'n',
+      ß: 'ss',
+    };
+    const regex = /[áàâãäåéèêëíìîïóòôõöúùûüçñß]/gi;
+
+    customFilteredUsername = customFilteredUsername.replace(' ', '');
+    customFilteredUsername = customFilteredUsername.toLowerCase();
+    customFilteredUsername = customFilteredUsername.replace(
+      regex,
+      (match) => replacements[match.toLowerCase()] || match,
+    );
+
+    return customFilteredUsername;
+  }
+
   async checkIfUserExistsByDocId(userDocId: string): Promise<IFirebaseResponse<IUser>> {
     const userDoc = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
     return userDoc;
@@ -50,6 +98,53 @@ class UserService {
     return false;
   }
 
+  async makeUsernameUnique(username: string) {
+    const adjectives = [
+      'Amazing',
+      'Brilliant',
+      'Crazy',
+      'Daring',
+      'Energetic',
+      'Fantastic',
+      'Glorious',
+      'Heroic',
+      'Incredible',
+      'Joyful',
+      'Kind',
+      'Legendary',
+      'Mighty',
+      'Noble',
+      'Outstanding',
+      'Powerful',
+      'Quick',
+      'Radiant',
+      'Strong',
+      'Talented',
+      'Unique',
+      'Victorious',
+      'Wonderful',
+      'Xtraordinary',
+      'Youthful',
+      'Zealous',
+    ];
+
+    let uniqueUsername = '';
+    let isUnique = false;
+
+    while (!isUnique) {
+      const randomIndex = Math.floor(Math.random() * adjectives.length);
+      const randomAdjective = adjectives[randomIndex];
+      uniqueUsername = `${randomAdjective}${username}`;
+
+      const userExists = await this.checkIfUsernameExists(uniqueUsername);
+      if (!userExists) {
+        isUnique = true;
+      }
+    }
+
+    return uniqueUsername;
+  }
+
   async registerUser({
     username,
     password,
@@ -57,35 +152,37 @@ class UserService {
     username: string;
     password: string;
   }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
+    if (!this.isUsernameValid(username)) throw new InvalidUsernameError();
+
+    const userExists = await this.checkIfUsernameExists(username);
+    if (userExists) throw new UsernameAlreadyExistsError();
+
+    const nowTime = Date.now();
+
+    const encryptedPassword = await encryptString(password);
+
+    /* REVER QUESTÃO DO PASSWORD E RETORNO PARA O FRONT!!!!!! */
+    const userInDbObj: IUser = {
+      username,
+      password: encryptedPassword,
+      avatar: '',
+      balance: 0,
+      email: {
+        value: '',
+        verified: false,
+        lastEmail: '',
+        updatedAt: nowTime,
+      },
+      roninWallet: {
+        value: '',
+        lastWallet: '',
+        verified: false,
+        updatedAt: nowTime,
+      },
+      createdAt: nowTime,
+    };
+
     try {
-      const userExists = await this.checkIfUsernameExists(username);
-      if (userExists) throw new UsernameAlreadyExistsError();
-
-      const nowTime = Date.now();
-
-      const encryptedPassword = await encryptString(password);
-
-      /* REVER QUESTÃO DO PASSWORD E RETORNO PARA O FRONT!!!!!! */
-      const userInDbObj: IUser = {
-        username,
-        password: encryptedPassword,
-        avatar: '',
-        balance: 0,
-        email: {
-          value: '',
-          verified: false,
-          lastEmail: '',
-          updatedAt: nowTime,
-        },
-        roninWallet: {
-          value: '',
-          lastWallet: '',
-          verified: false,
-          updatedAt: nowTime,
-        },
-        createdAt: nowTime,
-      };
-
       const { docId } = await FirebaseInstance.writeDocument('users', userInDbObj);
       return { userCredentials: userInDbObj, userCreatedId: docId };
     } catch (err: any) {
@@ -105,16 +202,19 @@ class UserService {
     googleSub: string;
   }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
     try {
-      const customName = googleName.replace(' ', '');
+      let customFilteredUsername = this.filterCustomUsername(googleName);
 
-      const userExists = await this.checkIfUsernameExists(customName);
-      if (userExists) throw new UsernameAlreadyExistsError();
+      if (!this.isUsernameValid(customFilteredUsername)) {
+        customFilteredUsername = this.filterCustomUsername(customFilteredUsername);
+      }
+
+      const userExists = await this.checkIfUsernameExists(customFilteredUsername);
+      if (userExists) customFilteredUsername = await this.makeUsernameUnique(customFilteredUsername);
 
       const nowTime = Date.now();
 
-      /* REVIEW QUESTÃO DO PASSWORD E RETORNO PARA O FRONT!!!!!! */
       const userInDbObj: IUser = {
-        username: customName,
+        username: customFilteredUsername,
         password: null,
         avatar,
         balance: 0,
@@ -207,10 +307,11 @@ class UserService {
 
     const { email: googleEmail, name: googleName, picture: googleAvatar, sub: googleSub } = googleAuthResponse.data;
 
+    /* Using googleSub as parameter to query cause email is changeble, while googleSub never changes */
     const usersRelatedToEmail = await FirebaseInstance.getManyDocumentsByParam<IUser>(
       'users',
-      'email.value',
-      googleEmail,
+      'email.googleSub',
+      googleSub,
     );
 
     /* If there's no user with the email yet, start an account creation */
@@ -361,12 +462,10 @@ class UserService {
     if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
 
     const redisKey = getRedisKeyHelper('walletVerification', roninWallet.value);
-    const walletVerificationInRedis =
-      (await RedisInstance.lRange<IWalletVerificationInRedis>(redisKey, { start: 0, end: -1 }, { isJSON: true })) || [];
+    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
 
-    const isUserAlreadyVerifyingAddress = walletVerificationInRedis.find((item) => item.userId === userId);
-    if (isUserAlreadyVerifyingAddress) {
-      return isUserAlreadyVerifyingAddress;
+    if (walletVerificationInRedis) {
+      return walletVerificationInRedis;
     }
 
     const nowDate = Date.now();
@@ -383,7 +482,7 @@ class UserService {
       ...randomValueToSend,
     };
 
-    await RedisInstance.rPush(
+    await RedisInstance.set(
       redisKey,
       walletVerificationRedisPayload,
       { isJSON: true },

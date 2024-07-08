@@ -24,7 +24,7 @@ class UserValidator {
       const usersEncounteredByEmail = await FirebaseInstance.getManyDocumentsByParam<IUser>('users', 'email', email);
 
       if (usersEncounteredByEmail) {
-        for (const user of usersEncounteredByEmail) {
+        for (const user of usersEncounteredByEmail.documents) {
           const pushUser = async () => {
             const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', user.docId);
 
@@ -44,7 +44,7 @@ class UserValidator {
       );
 
       if (usersEncounteredByRoninWallet) {
-        for (const user of usersEncounteredByRoninWallet) {
+        for (const user of usersEncounteredByRoninWallet.documents) {
           const pushUser = async () => {
             const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', user.docId);
 

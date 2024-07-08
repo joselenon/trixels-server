@@ -45,6 +45,7 @@ class JWTService implements IJWTService {
     try {
       const { token } = args;
       if (!token) throw new AuthError();
+      if (typeof token !== 'string') throw new AuthError();
 
       let filteredToken = token;
 
@@ -67,7 +68,9 @@ class JWTService implements IJWTService {
       this.validateJWTPayload(inferredValidation);
 
       const userDoc = await UserService.checkIfUserExistsByDocId(inferredValidation.userDocId);
-      if (!userDoc.docData) throw new AuthError();
+      if (!userDoc.docData) {
+        throw new AuthError();
+      }
 
       return { userJWTPayload: inferredValidation, userDoc };
     } catch (err: any) {

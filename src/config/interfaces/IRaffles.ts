@@ -33,6 +33,7 @@ export type TWinnerBetsInDb = {
 
 export interface IRaffleInDb {
   createdAt: number;
+  createdBy: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
   updatedAt: number;
   finishedAt?: number;
   type: 'raffles';
@@ -56,6 +57,11 @@ export interface IRaffleInDb {
 export interface IRaffleToFrontEnd {
   gameId: string;
   createdAt: string;
+  createdBy: {
+    avatar: string;
+    username: string;
+    userId: string;
+  };
   finishedAt?: string;
   type: 'raffles';
   description: string;
