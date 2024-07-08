@@ -1,14 +1,14 @@
 // Informations shared with all resolvers (graphql context)
-import validateAuth from '../../common/validateAuth';
 import UserController from '../../controllers/graphql/UserController';
 import IGQLContext from '../interfaces/IGQLContext';
 import RafflesControllerGQL from '../../controllers/graphql/RafflesControllerGQL';
+import JWTService from '../../services/JWTService';
 
 export default async function context({ req }: any): Promise<IGQLContext> {
   const jwtToken = req.headers.authorization;
 
   return {
-    validateAuth,
+    JWTService,
     jwtToken,
     UserController,
     RafflesControllerGQL,
@@ -17,12 +17,12 @@ export default async function context({ req }: any): Promise<IGQLContext> {
 
 export async function wsContext(ctx: any): Promise<IGQLContext> {
   const jwtToken = ctx.connectionParams?.Authorization;
-  ctx.validateAuth = validateAuth;
+  ctx.JWTService = JWTService;
   ctx.jwtToken = jwtToken ? jwtToken : '';
   ctx.UserController = UserController;
 
   return {
-    validateAuth,
+    JWTService,
     jwtToken,
     UserController,
     RafflesControllerGQL,

@@ -10,10 +10,10 @@ const resolvers = {
   Query: {
     getUser: async (_: any, __: any, context: IGQLContext) => {
       try {
-        const { validateAuth, jwtToken, UserController } = context;
-        const { jwtPayload } = await validateAuth(jwtToken);
+        const { JWTService, jwtToken, UserController } = context;
+        const { userDoc } = await JWTService.validateJWT({ token: jwtToken });
 
-        const userData = await UserController.getUser(jwtPayload.userDocId);
+        const userData = await UserController.getUser(userDoc.docId);
         if (!userData) throw new DocumentNotFoundError();
 
         return responseBody(true, 'GET_USER_INFO', 'GET_MSG', userData.docData);
@@ -24,15 +24,16 @@ const resolvers = {
 
     getBalance: async (_: any, args: any, context: IGQLContext) => {
       try {
-        const { validateAuth, jwtToken } = context;
-        const { jwtPayload } = await validateAuth(jwtToken);
+        const { JWTService, jwtToken } = context;
+        const { userDoc } = await JWTService.validateJWT({ token: jwtToken });
+        const userId = userDoc.docId;
 
-        const balance = await BalanceService.getUserBalance(jwtPayload.userDocId);
+        const balance = await BalanceService.getUserBalance(userId);
 
         await PubSubEventManager.publishEvent(
           'GET_LIVE_BALANCE',
           { success: true, type: 'GET_LIVE_BALANCE', message: 'GET_MSG', data: balance },
-          jwtPayload.userDocId,
+          userId,
         );
 
         return responseBody(true, 'GET_BALANCE', 'GET_MSG', balance);
@@ -46,11 +47,11 @@ const resolvers = {
     getLiveBalance: {
       subscribe: async (_: any, args: any, context: IGQLContext) => {
         try {
-          const { validateAuth, jwtToken } = context;
-          const { jwtPayload } = await validateAuth(jwtToken);
+          const { JWTService, jwtToken } = context;
+          const { userDoc } = await JWTService.validateJWT({ token: jwtToken });
 
           return PubSubEventManager.getPSub().asyncIterator([
-            `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${jwtPayload.userDocId}`,
+            `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${userDoc.docId}`,
           ]);
         } catch (err) {
           validateAndCaptureError(err);
@@ -61,11 +62,11 @@ const resolvers = {
     getLiveMessages: {
       subscribe: async (_: any, args: any, context: IGQLContext) => {
         try {
-          const { validateAuth, jwtToken } = context;
-          const { jwtPayload } = await validateAuth(jwtToken);
+          const { JWTService, jwtToken } = context;
+          const { userDoc } = await JWTService.validateJWT({ token: jwtToken });
 
           return PubSubEventManager.getPSub().asyncIterator([
-            `${PUBSUB_EVENTS.GET_LIVE_MESSAGES.triggerName}:${jwtPayload.userDocId}`,
+            `${PUBSUB_EVENTS.GET_LIVE_MESSAGES.triggerName}:${userDoc.docId}`,
           ]);
         } catch (err) {
           validateAndCaptureError(err);

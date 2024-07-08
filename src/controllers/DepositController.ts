@@ -1,33 +1,20 @@
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
-import validateAuth from '../common/validateAuth';
 import DepositService from '../services/DepositService';
 import PayloadValidator from '../services/PayloadValidator';
 import { IGetDepositWalletResponse } from '../config/interfaces/IDeposit';
+import JWTService from '../services/JWTService';
 
 class DepositController {
-  /*   async getDepositMethods(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { authorization = null } = req.headers;
-      await validateAuth(authorization);
-
-      const depositMethods = await DepositService.getDepositMethods();
-
-      return res.status(200).json(responseBody(true, 'GET_DEPOSIT_METHODS', 'GET_MSG', depositMethods));
-    } catch (err) {
-      next(err);
-    }
-  } */
-
   async getDepositWallet(req: Request, res: Response, next: NextFunction) {
     try {
       const token = req.cookies.accessToken;
       const payload = req.body;
 
-      const { jwtPayload } = await validateAuth(token);
+      const { userDoc } = await JWTService.validateJWT(token);
 
       const validatedPayload = PayloadValidator.verifyGetDepositWalletPayload(payload);
-      const walletAddress = await DepositService.getDepositWallet(jwtPayload.userDocId, validatedPayload);
+      const walletAddress = await DepositService.getDepositWallet(userDoc.docId, validatedPayload);
 
       return res
         .status(200)
@@ -42,9 +29,9 @@ class DepositController {
       const token = req.cookies.accessToken;
       const payload = req.body;
 
-      const { jwtPayload } = await validateAuth(token);
+      const { userDoc } = await JWTService.validateJWT(token);
 
-      await DepositService.redeemCode(jwtPayload.userDocId, payload);
+      await DepositService.redeemCode(userDoc.docId, payload);
 
       return res.status(200).json(responseBody(true, 'REDEEM_CODE', 'REDEEM_CODE_MSG', null));
     } catch (err) {

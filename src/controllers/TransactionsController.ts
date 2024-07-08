@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
-import validateAuth from '../common/validateAuth';
 import TransactionsService from '../services/TransactionsService';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
+import JWTService from '../services/JWTService';
 
 export interface IGetUserTransactionsPayload {
   forward: boolean;
@@ -15,7 +15,7 @@ class TransactionsController {
       const token = req.cookies.accessToken;
       const payload = req.body as IGetUserTransactionsPayload;
 
-      const { userDoc } = await validateAuth(token);
+      const { userDoc } = await JWTService.validateJWT(token);
       const { docRef: userRef } = userDoc;
 
       const { forward, startAfterDocTimestamp } = payload;

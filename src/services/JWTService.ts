@@ -1,20 +1,21 @@
-// In order to deep verification, use common function 'validateAuth' (validates user in DB)
 import jwt from 'jsonwebtoken';
 
 import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
-import { IUserJWTPayload } from '../config/interfaces/IUser';
+import { IUser, IUserJWTPayload } from '../config/interfaces/IUser';
 import { BlacklistedTokenError, InvalidJWTError } from '../config/errors/classes/SystemErrors';
 import TokensConfig from '../config/app/TokensConfig';
 import { RedisInstance } from '..';
 import getRedisKeyHelper from '../helpers/redisHelper';
+import UserService from './UserService';
+import { IFirebaseResponse } from '../config/interfaces/IFirebase';
 
 export interface IJWTService {
   signJWT(payload: IUserJWTPayload): string | undefined;
-  validateJWT(args: { token: string }): Promise<IUserJWTPayload>;
+  validateJWT(args: { token: string }): Promise<{ userJWTPayload: IUserJWTPayload; userDoc: IFirebaseResponse<IUser> }>;
 }
 
 class JWTService implements IJWTService {
-  validateJWTPayload(jwtPayload: IUserJWTPayload) {
+  private validateJWTPayload(jwtPayload: IUserJWTPayload) {
     if (!jwtPayload.userDocId || !jwtPayload.username) throw new Error('Invalid jwt payload');
   }
 
@@ -38,7 +39,9 @@ class JWTService implements IJWTService {
     }
   }
 
-  async validateJWT(args: { token: string | undefined }) {
+  async validateJWT(args: {
+    token: string | undefined;
+  }): Promise<{ userJWTPayload: IUserJWTPayload; userDoc: IFirebaseResponse<IUser> }> {
     try {
       const { token } = args;
       if (!token) throw new AuthError();
@@ -62,7 +65,11 @@ class JWTService implements IJWTService {
       const inferredValidation = validated as IUserJWTPayload;
 
       this.validateJWTPayload(inferredValidation);
-      return inferredValidation;
+
+      const userDoc = await UserService.checkIfUserExistsByDocId(inferredValidation.userDocId);
+      if (!userDoc.docData) throw new AuthError();
+
+      return { userJWTPayload: inferredValidation, userDoc };
     } catch (err: any) {
       const error = err as Error;
       if (error.name === 'TokenExpiredError') throw new JWTExpiredError();

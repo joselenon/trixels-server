@@ -2,8 +2,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
-import UserValidator from '../services/UserValidations/UserValidator';
-import { AuthError, EmailAlreadyExistsError } from '../config/errors/classes/ClientErrors';
+import { AuthError } from '../config/errors/classes/ClientErrors';
 import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
@@ -21,11 +20,6 @@ class UserController {
       }
       if (!password || typeof password !== 'string') {
         throw new InvalidPayloadError();
-      }
-
-      const isUsernameAvailable = await UserValidator.isUsernameAvailable(username);
-      if (!isUsernameAvailable) {
-        throw new EmailAlreadyExistsError();
       }
 
       const { userCredentials, userCreatedId } = await UserService.registerUser({
@@ -89,11 +83,14 @@ class UserController {
     try {
       const token = req.cookies.accessToken;
 
-      const { userDocId } = await JWTService.validateJWT({
+      const { userDoc } = await JWTService.validateJWT({
         token,
       });
 
-      const userCredentials = await UserService.getUserCredentials(userDocId);
+      const userCredentials = UserService.filterUserInfoToFrontEnd({
+        userInfo: userDoc.docData,
+        userQueryingIsUserLogged: true,
+      });
 
       res.status(200).json(responseBody<IUserToFrontEnd>(true, 'GET_USER_INFO', 'GET_MSG', userCredentials));
     } catch (err) {
@@ -109,11 +106,14 @@ class UserController {
       let requesterUsername = undefined;
 
       try {
-        const validatedJWT = await JWTService.validateJWT({
+        const { userJWTPayload } = await JWTService.validateJWT({
           token,
         });
-        requesterUsername = validatedJWT?.username;
-      } catch (err) {}
+
+        requesterUsername = userJWTPayload?.username;
+      } catch (err) {
+        /* empty */
+      }
 
       if (!usernameToQuery && !requesterUsername) {
         throw new InvalidPayloadError();
@@ -133,7 +133,7 @@ class UserController {
       const validatedJWT = await JWTService.validateJWT({ token });
 
       if (!validatedJWT) throw new AuthError();
-      const { username } = validatedJWT;
+      const { userDoc } = validatedJWT;
 
       const { email, roninWallet } = req.body;
       if (!email && !roninWallet) throw new InvalidPayloadError();
@@ -143,7 +143,7 @@ class UserController {
       if (email) filteredPayload.email = email;
       if (roninWallet) filteredPayload.roninWallet = roninWallet;
 
-      await UserService.updateUserCredentials(username, filteredPayload);
+      await UserService.updateUserCredentials(userDoc, filteredPayload);
 
       res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', null));
     } catch (err) {
@@ -157,9 +157,9 @@ class UserController {
       const validatedJWT = await JWTService.validateJWT({ token });
 
       if (!validatedJWT) throw new AuthError();
-      const { userDocId } = validatedJWT;
+      const { userDoc } = validatedJWT;
 
-      const response = await UserService.verifyWallet(userDocId);
+      const response = await UserService.verifyWallet(userDoc.docId);
 
       res.status(200).json(responseBody(true, 'WALLET_VERIFICATION', 'WALLET_VERIFICATION', response));
     } catch (err) {

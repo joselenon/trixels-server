@@ -66,16 +66,6 @@ class UserValidator {
     }
   }
 
-  async isUsernameAvailable(username: string) {
-    const userInDb = await FirebaseInstance.getSingleDocumentByParam('users', 'username', username);
-
-    if (userInDb?.docData) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
   async writeMultiAccountsRegistry(
     userRef: admin.firestore.DocumentReference<admin.firestore.DocumentData>,
     userRefsArray: UsersReferences,

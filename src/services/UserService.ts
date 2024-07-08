@@ -14,11 +14,11 @@ import { GoogleOAuthSystemError, UnexpectedDatabaseError } from '../config/error
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
-import { checkIfUsernameExists } from '../common/checkIfUserAlreadyExists';
 import getRedisKeyHelper from '../helpers/redisHelper';
 import { WALLET_VERIFICATION_EXPIRATION_IN_SECONDS } from '../config/app/System';
 import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
 import AxiosService from './AxiosService';
+import { IFirebaseResponse } from '../config/interfaces/IFirebase';
 
 export interface IUpdateUserCredentialsPayload {
   email?: string;
@@ -33,6 +33,23 @@ interface IGoogleApisUserInfo {
 }
 
 class UserService {
+  async checkIfUserExistsByDocId(userDocId: string): Promise<IFirebaseResponse<IUser>> {
+    const userDoc = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userDocId);
+    return userDoc;
+  }
+
+  async checkIfUsernameExists(
+    username: string,
+  ): Promise<{ userExists: boolean; data: IFirebaseResponse<IUser> } | false> {
+    const userExists = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', username);
+
+    if (userExists) {
+      return { userExists: !!userExists.docData, data: userExists };
+    }
+
+    return false;
+  }
+
   async registerUser({
     username,
     password,
@@ -41,7 +58,7 @@ class UserService {
     password: string;
   }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
     try {
-      const userExists = await checkIfUsernameExists(username);
+      const userExists = await this.checkIfUsernameExists(username);
       if (userExists) throw new UsernameAlreadyExistsError();
 
       const nowTime = Date.now();
@@ -90,7 +107,7 @@ class UserService {
     try {
       const customName = googleName.replace(' ', '');
 
-      const userExists = await checkIfUsernameExists(customName);
+      const userExists = await this.checkIfUsernameExists(customName);
       if (userExists) throw new UsernameAlreadyExistsError();
 
       const nowTime = Date.now();
@@ -158,7 +175,7 @@ class UserService {
     userId: string;
     userCredentials: IUserToFrontEnd;
   }> {
-    const userExists = await checkIfUsernameExists(username);
+    const userExists = await this.checkIfUsernameExists(username);
     if (!userExists) throw new InvalidUsernameError();
 
     const { data: userData } = userExists;
@@ -267,11 +284,9 @@ class UserService {
     });
   }
 
-  async updateUserCredentials(usernameLogged: string, payload: IUpdateUserCredentialsPayload) {
-    const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', usernameLogged);
-    if (!userInDb) throw new UserNotFound();
-
-    const { email, roninWallet } = userInDb.docData;
+  async updateUserCredentials(userDoc: IFirebaseResponse<IUser>, payload: IUpdateUserCredentialsPayload) {
+    const { docId, docData } = userDoc;
+    const { email, roninWallet } = docData;
 
     const usersWithSameWallet = await FirebaseInstance.getManyDocumentsByParam<IUser>(
       'users',
@@ -302,7 +317,7 @@ class UserService {
       };
     }
 
-    return await FirebaseInstance.updateDocument('users', userInDb.docId, filteredPayload);
+    return await FirebaseInstance.updateDocument('users', docId, filteredPayload);
   }
 
   /*   async createEthereumDepositWallet(userDocId: string) {
