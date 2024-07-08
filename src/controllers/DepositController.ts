@@ -21,10 +21,10 @@ class DepositController {
 
   async getDepositWallet(req: Request, res: Response, next: NextFunction) {
     try {
-      const { authorization = null } = req.headers;
+      const token = req.cookies.accessToken;
       const payload = req.body;
 
-      const { jwtPayload } = await validateAuth(authorization);
+      const { jwtPayload } = await validateAuth(token);
 
       const validatedPayload = PayloadValidator.verifyGetDepositWalletPayload(payload);
       const walletAddress = await DepositService.getDepositWallet(jwtPayload.userDocId, validatedPayload);
@@ -39,10 +39,10 @@ class DepositController {
 
   async redeemCode(req: Request, res: Response, next: NextFunction) {
     try {
-      const { authorization = null } = req.headers;
+      const token = req.cookies.accessToken;
       const payload = req.body;
 
-      const { jwtPayload } = await validateAuth(authorization);
+      const { jwtPayload } = await validateAuth(token);
 
       await DepositService.redeemCode(jwtPayload.userDocId, payload);
 

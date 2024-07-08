@@ -12,10 +12,10 @@ export interface IGetUserTransactionsPayload {
 class TransactionsController {
   async getUserTransactions(req: Request, res: Response, next: NextFunction) {
     try {
-      const { authorization = null } = req.headers;
+      const token = req.cookies.accessToken;
       const payload = req.body as IGetUserTransactionsPayload;
 
-      const { userDoc } = await validateAuth(authorization);
+      const { userDoc } = await validateAuth(token);
       const { docRef: userRef } = userDoc;
 
       const { forward, startAfterDocTimestamp } = payload;

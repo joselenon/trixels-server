@@ -257,6 +257,16 @@ class UserService {
     });
   }
 
+  async getUserCredentials(userDocId: string): Promise<IUserToFrontEnd> {
+    const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId);
+    if (!userInDb) throw new UserNotFound();
+
+    return this.filterUserInfoToFrontEnd({
+      userInfo: userInDb.docData,
+      userQueryingIsUserLogged: true,
+    });
+  }
+
   async updateUserCredentials(usernameLogged: string, payload: IUpdateUserCredentialsPayload) {
     const userInDb = await FirebaseInstance.getSingleDocumentByParam<IUser>('users', 'username', usernameLogged);
     if (!userInDb) throw new UserNotFound();

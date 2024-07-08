@@ -8,6 +8,7 @@ interface IRedisKeys {
   allRaffles: string;
   balanceUpdateQueue: string;
   walletVerification: string;
+  blacklistedTokens: string;
   refreshToken: string;
 }
 

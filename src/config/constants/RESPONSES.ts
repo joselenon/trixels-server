@@ -36,6 +36,8 @@ const RESPONSE_CONFIG = {
       RAFFLE_LOST: 'System lost a specific raffle',
       INVALID_JWT: 'INVALID_JWT',
       GOOGLE_OAUTH_SYSTEM: 'Something went wrong with GoogleOAuthSystem',
+      SUSPICIOUS_AUTH: 'Something suspicious with user authentication',
+      BLACKLISTED_TOKEN: 'Authentication with blacklisted token by user: ',
     },
 
     CLIENT_ERROR_MSGS: {

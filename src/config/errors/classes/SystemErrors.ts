@@ -108,7 +108,7 @@ export class GoogleOAuthSystemError extends SystemError {
 }
 
 export class SuspiciousAuthError extends SystemError {
-  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.GOOGLE_OAUTH_SYSTEM) {
+  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.SUSPICIOUS_AUTH) {
     super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }
@@ -116,5 +116,11 @@ export class SuspiciousAuthError extends SystemError {
 export class InvalidRefreshToken extends SystemError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.AUTH_MSG) {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
+  }
+}
+
+export class BlacklistedTokenError extends SystemError {
+  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.BLACKLISTED_TOKEN) {
+    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.TYPES.Authorization);
   }
 }

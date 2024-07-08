@@ -6,9 +6,57 @@ import TokensConfig from '../config/app/TokensConfig';
 import JWTService from './JWTService';
 import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
 import UserService from './UserService';
-import { SuspiciousAuthError } from '../config/errors/classes/SystemErrors';
+import { BlacklistedTokenError, SuspiciousAuthError } from '../config/errors/classes/SystemErrors';
 
 class AuthService {
+  async genAccessToken(refreshToken: string, userId: string) {
+    const refreshTokenRedisKey = getRedisKeyHelper('refreshToken', refreshToken);
+
+    const userCredentials = await UserService.getUserCredentialsById(userId, true);
+    const { username, avatar } = userCredentials;
+
+    const genJWT = JWTService.signJWT({ username, avatar, userDocId: userId });
+    const bearerToken = `Bearer ${genJWT}`;
+
+    const refreshTokenRedisPayload: IRefreshTokenRedisPayload = {
+      userId,
+      lastAccessToken: bearerToken,
+      received: false,
+    };
+    await RedisInstance.set(
+      refreshTokenRedisKey,
+      refreshTokenRedisPayload,
+      { isJSON: true },
+      TokensConfig.REFRESH_TOKEN.expirationInSec,
+    );
+
+    return { accessToken: bearerToken };
+  }
+
+  async setTokenToBlacklist(token: string) {
+    const blacklistedTokensRedisKey = getRedisKeyHelper('blacklistedTokens');
+    await RedisInstance.rPush(blacklistedTokensRedisKey, token, undefined, TokensConfig.JWT.expirationInSec);
+  }
+
+  async validateAccessToken(refreshToken: string, accessToken: string) {
+    const refreshTokenRedisKey = getRedisKeyHelper('refreshToken', refreshToken);
+    const refreshTokenRedis = await RedisInstance.get<IRefreshTokenRedisPayload>(refreshTokenRedisKey, {
+      isJSON: true,
+    });
+    if (!refreshTokenRedis) throw new AuthError();
+
+    const { lastAccessToken } = refreshTokenRedis;
+    if (lastAccessToken === accessToken) {
+      const refreshTokenRedisPayload: IRefreshTokenRedisPayload = {
+        ...refreshTokenRedis,
+        received: true,
+      };
+      await RedisInstance.set(refreshTokenRedisKey, refreshTokenRedisPayload, { isJSON: true });
+    } else {
+      throw new AuthError();
+    }
+  }
+
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
     const refreshTokenRedisKey = getRedisKeyHelper('refreshToken', refreshToken);
     const refreshTokenRedis = await RedisInstance.get<IRefreshTokenRedisPayload>(refreshTokenRedisKey, {
@@ -16,28 +64,19 @@ class AuthService {
     });
     if (!refreshTokenRedis) throw new AuthError();
 
-    const { userId, lastAccessToken } = refreshTokenRedis;
+    const { userId, lastAccessToken, received } = refreshTokenRedis;
 
     try {
-      JWTService.validateJWT({ token: lastAccessToken, mustBeAuth: true });
-      throw new SuspiciousAuthError(userId);
+      if (received) {
+        await JWTService.validateJWT({ token: lastAccessToken });
+        throw new SuspiciousAuthError(userId);
+      } else {
+        await this.setTokenToBlacklist(lastAccessToken);
+        return await this.genAccessToken(refreshToken, userId);
+      }
     } catch (err: unknown) {
-      if (err instanceof JWTExpiredError) {
-        const userCredentials = await UserService.getUserCredentialsById(userId, true);
-        const { username, avatar } = userCredentials;
-
-        const genJWT = JWTService.signJWT({ username, avatar, userDocId: userId });
-        const bearerToken = `Bearer ${genJWT}`;
-
-        const refreshTokenRedisPayload: IRefreshTokenRedisPayload = { userId, lastAccessToken: bearerToken };
-        await RedisInstance.set(
-          refreshTokenRedisKey,
-          refreshTokenRedisPayload,
-          { isJSON: true },
-          TokensConfig.REFRESH_TOKEN.expirationInSec,
-        );
-
-        return { accessToken: genJWT };
+      if (err instanceof JWTExpiredError || err instanceof BlacklistedTokenError) {
+        return await this.genAccessToken(refreshToken, userId);
       }
 
       throw err;
@@ -51,7 +90,11 @@ class AuthService {
     /* Colocar checagem para ver se refreshToken ja existe (usuário logando de novo) AVERIGUAR REVIEW */
     const refreshToken = v4();
     const refreshTokenRedisKey = getRedisKeyHelper('refreshToken', refreshToken);
-    const refreshTokenRedisPayload: IRefreshTokenRedisPayload = { userId, lastAccessToken: bearerToken };
+    const refreshTokenRedisPayload: IRefreshTokenRedisPayload = {
+      userId,
+      lastAccessToken: bearerToken,
+      received: false,
+    };
 
     /* Little detail: the time i set this key-value with the expiration time, the time doesn't match with the cookie expiration time... */
     await RedisInstance.set(
@@ -61,7 +104,7 @@ class AuthService {
       TokensConfig.REFRESH_TOKEN.expirationInSec,
     );
 
-    return { refreshToken, accessToken };
+    return { refreshToken, accessToken: bearerToken };
   }
 }
 

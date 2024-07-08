@@ -2,7 +2,7 @@ import ENVIRONMENT from '../constants/ENVIRONMENT';
 
 const JWT = {
   secret: ENVIRONMENT.JWT_SECRET,
-  expirationInSec: 5 /* 5 * 60 */, // 15 minutes (in seconds)
+  expirationInSec: 8 /* 5 * 60 */, // 15 minutes (in seconds)
 };
 
 const REFRESH_TOKEN = {

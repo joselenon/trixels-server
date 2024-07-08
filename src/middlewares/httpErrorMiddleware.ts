@@ -8,8 +8,6 @@ import { RESPONSE_CONFIG } from '../config/constants/RESPONSES';
 const httpErrorMiddleware = (err: Error, req: Request, res: Response, next: NextFunction) => {
   Sentry.captureException(err); // Captures errors to send to Sentry
 
-  console.log(err);
-
   if (err instanceof ClientError) {
     res.status(err.status).json(errorResponse(err.message));
     return next();

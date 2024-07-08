@@ -15,9 +15,8 @@ const validateAuth: TValidateAuthFn = async (authorization: string | null): Prom
   if (!authorization) throw new AuthError();
 
   // Throws an AuthError in case is invalid
-  const jwtPayload = JWTService.validateJWT({
+  const jwtPayload = await JWTService.validateJWT({
     token: authorization,
-    mustBeAuth: true,
   });
 
   if (!jwtPayload) throw new AuthError();

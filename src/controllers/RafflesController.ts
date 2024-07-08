@@ -20,11 +20,10 @@ class RafflesController {
 
   async createRaffle(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.headers.authorization;
-      const { userDocId } = JWTService.validateJWT({
+      const token = req.cookies.accessToken;
+      const { userDocId } = await JWTService.validateJWT({
         token,
-        mustBeAuth: true,
-      })!; /* ARRUMAR ESSA FORÇAÇÃO */
+      })!;
 
       const raffleCreationPayload = req.body as IRaffleCreationPayload;
       const validatedPayload = PayloadValidator.validateRaffleCreationPayload(raffleCreationPayload);
@@ -43,11 +42,10 @@ class RafflesController {
     try {
       const nowTime = Date.now();
 
-      const token = req.headers.authorization;
-      const { userDocId } = JWTService.validateJWT({
+      const token = req.cookies.accessToken;
+      const { userDocId } = await JWTService.validateJWT({
         token,
-        mustBeAuth: true,
-      })!; /* ARRUMAR ESSA FORÇAÇÃO */
+      });
 
       const buyRaffleTicketPayload = req.body as IBuyRaffleTicketsPayload;
       RaffleUtils.verifyBuyRaffleTicketPayload(buyRaffleTicketPayload);
