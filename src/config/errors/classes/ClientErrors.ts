@@ -78,13 +78,13 @@ export class UserUpdateInfoError extends ClientError {
 }
 
 export class WalletVerificationError extends ClientError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION_FAILED) {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.WalletVerification, 403);
   }
 }
 
 export class WalletAlreadyInUseError extends ClientError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.WALLET_VERIFICATION_FAILED) {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.WalletVerification, 403);
   }
 }
