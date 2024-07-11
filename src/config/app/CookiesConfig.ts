@@ -10,7 +10,7 @@ const RefreshTokenCookie = {
     // Only send in HTTPS
     secure: ENVIRONMENT.MODE === 'PRODUCTION',
     sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-    domain: `${ENVIRONMENT.MODE === 'DEVELOPMENT' ? ENVIRONMENT.DOMAIN : `.${ENVIRONMENT.DOMAIN}.com`}`,
+    domain: `${ENVIRONMENT.MODE === 'DEVELOPMENT' ? ENVIRONMENT.CLIENT_DOMAIN : `.${ENVIRONMENT.CLIENT_DOMAIN}.com`}`,
     httpOnly: true,
   } as CookieOptions,
 };
