@@ -8,9 +8,9 @@ dotenv.config({ path: envPath });
 const ENVIRONMENT = {
   MODE: process.env.MODE as 'DEVELOPMENT' | 'PRODUCTION',
   HTTPS: process.env.HTTPS === 'true' ? true : false,
-  SERVER_DOMAIN: process.env.SERVER_DOMAIN || 'localhost',
+  DOMAIN: process.env.CLIENT_DOMAIN || 'localhost',
+  SERVER_SUBDOMAIN_DOMAIN: process.env.SERVER_DOMAIN || 'localhost',
   SERVER_PORT: process.env.SERVER_PORT || '4000',
-  CLIENT_DOMAIN: process.env.CLIENT_DOMAIN || 'localhost',
   CLIENT_SUBDOMAIN_DOMAIN: process.env.CLIENT_SUBDOMAIN_DOMAIN || 'localhost',
   CLIENT_PORT: process.env.CLIENT_PORT || '3000',
   REDIS_HOST: process.env.REDIS_HOST as string,
@@ -30,9 +30,9 @@ const ENVIRONMENT = {
 const requiredVariables = [
   'MODE',
   'HTTPS',
-  'SERVER_DOMAIN',
+  'DOMAIN',
+  'SERVER_SUBDOMAIN_DOMAIN',
   'SERVER_PORT',
-  'CLIENT_DOMAIN',
   'CLIENT_SUBDOMAIN_DOMAIN',
   'REDIS_HOST',
   'REDIS_PORT',
