@@ -4,7 +4,7 @@ const PROTOCOL = ENVIRONMENT.HTTPS ? 'https://' : 'http://';
 
 /* __SERVER__ */
 /* https://serverdomain.com OU http://localhost */
-const SERVER_URL = `${PROTOCOL}${ENVIRONMENT.SERVER_DOMAIN}`;
+const SERVER_URL = `${PROTOCOL}${ENVIRONMENT.SERVER_SUBDOMAIN_DOMAIN}`;
 /* SERVER PORT */
 const SERVER_PORT = ENVIRONMENT.SERVER_PORT;
 /* https://serverdomain.com OU http://localhost:PORT */
@@ -18,8 +18,8 @@ export const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
 const CLIENT_URL = `${PROTOCOL}${ENVIRONMENT.CLIENT_SUBDOMAIN_DOMAIN}`;
 /* CLIENT PORT */
 const CLIENT_PORT = ENVIRONMENT.CLIENT_PORT;
-/* https://clientdomain.com OU http://localhost:PORT */
-export const CLIENT_FULL_URL = ENVIRONMENT.MODE === 'DEVELOPMENT' ? `${CLIENT_URL}:${CLIENT_PORT}` : CLIENT_URL;
+/* https://client.domain.com OU http://localhost:PORT */
+export const CLIENT_FULL_URL = ENVIRONMENT.MODE === 'PRODUCTION' ? CLIENT_URL : `${CLIENT_URL}:${CLIENT_PORT}`;
 
 const ENDPOINTS = {
   AUTH: '/auth',
