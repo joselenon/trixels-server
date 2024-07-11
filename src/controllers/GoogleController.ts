@@ -15,13 +15,14 @@ class GoogleController {
       if (!state) throw new UnknownError('Invalid state.');
       req.session.state = state;
 
+      console.log(state);
+
       /* Requisições do client */
       res.header('Access-Control-Allow-Origin', CLIENT_FULL_URL);
       /* Because it's in HTTP. (remove when deploy to HTTPS) */
       ENVIRONMENT.MODE === 'DEVELOPMENT' && res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 
       const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
-      console.log(redirectUri);
 
       const oAuth2Client = new OAuth2Client(
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_ID,
@@ -51,6 +52,9 @@ class GoogleController {
       if (!state) throw new UnknownError('Invalid state.');
 
       const storedState = req.session.state;
+
+      console.log('state', state);
+      console.log('storedState', storedState);
 
       if (state !== storedState) {
         throw new UnknownError('State does not match. Possible CSRF attack.');
