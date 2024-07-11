@@ -10,7 +10,7 @@ export default function sessionsMiddleware() {
     cookie: {
       secure: ENVIRONMENT.MODE === 'PRODUCTION' ? true : false,
       sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-      domain: `${ENVIRONMENT.MODE === 'DEVELOPMENT' ? ENVIRONMENT.CLIENT_DOMAIN : `.${ENVIRONMENT.CLIENT_DOMAIN}.com`}`,
+      domain: `${ENVIRONMENT.CLIENT_DOMAIN}`,
       httpOnly: true,
     },
   });
