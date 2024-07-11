@@ -7,7 +7,6 @@ dotenv.config({ path: envPath });
 
 const ENVIRONMENT = {
   MODE: process.env.MODE as 'DEVELOPMENT' | 'PRODUCTION',
-  DOMAIN: process.env.DOMAIN || 'localhost',
   HTTPS: process.env.HTTPS === 'true' ? true : false,
   SERVER_DOMAIN: process.env.SERVER_DOMAIN || 'localhost',
   SERVER_PORT: process.env.SERVER_PORT || '4000',
@@ -28,7 +27,6 @@ const ENVIRONMENT = {
 
 const requiredVariables = [
   'MODE',
-  'DOMAIN',
   'HTTPS',
   'SERVER_DOMAIN',
   'SERVER_PORT',

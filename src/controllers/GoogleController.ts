@@ -18,14 +18,14 @@ class GoogleController {
       /* Requisições do client */
       res.header('Access-Control-Allow-Origin', CLIENT_FULL_URL);
       /* Because it's in HTTP. (remove when deploy to HTTPS) */
-      res.header('Referrer-Policy', 'no-referrer-when-downgrade');
+      ENVIRONMENT.MODE === 'DEVELOPMENT' && res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 
-      const redirectUrl = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
+      const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
       const oAuth2Client = new OAuth2Client(
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_ID,
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_SECRET_KEY,
-        redirectUrl,
+        redirectUri,
       );
 
       const authorizeUrl = oAuth2Client.generateAuthUrl({
@@ -55,12 +55,12 @@ class GoogleController {
         throw new UnknownError('State does not match. Possible CSRF attack.');
       }
 
-      const redirectUrl = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
+      const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
       const oAuth2Client = new OAuth2Client(
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_ID,
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_SECRET_KEY,
-        redirectUrl,
+        redirectUri,
       );
 
       const response = await oAuth2Client.getToken(code);
