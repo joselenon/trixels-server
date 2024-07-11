@@ -10,7 +10,7 @@ const RefreshTokenCookie = {
     // Only send in HTTPS
     secure: ENVIRONMENT.MODE === 'PRODUCTION',
     sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-    domain: `.${ENVIRONMENT.CLIENT_DOMAIN}`,
+    domain: `.${ENVIRONMENT.DOMAIN}`,
     httpOnly: true,
   } as CookieOptions,
 };
@@ -23,7 +23,7 @@ const JWTCookie = {
     // Only send in HTTPS
     secure: ENVIRONMENT.MODE === 'PRODUCTION',
     sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-    domain: `.${ENVIRONMENT.CLIENT_DOMAIN}`,
+    domain: `.${ENVIRONMENT.DOMAIN}`,
   } as CookieOptions,
 };
 
