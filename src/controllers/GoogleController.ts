@@ -20,7 +20,8 @@ class GoogleController {
       /* Because it's in HTTP. (remove when deploy to HTTPS) */
       ENVIRONMENT.MODE === 'DEVELOPMENT' && res.header('Referrer-Policy', 'no-referrer-when-downgrade');
 
-      const redirectUri = `${API_URL}/${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
+      const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
+      console.log(redirectUri);
 
       const oAuth2Client = new OAuth2Client(
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_ID,
@@ -55,7 +56,7 @@ class GoogleController {
         throw new UnknownError('State does not match. Possible CSRF attack.');
       }
 
-      const redirectUri = `${API_URL}/${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
+      const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
       const oAuth2Client = new OAuth2Client(
         ENVIRONMENT.GOOGLE_OAUTH_CLIENT_ID,
