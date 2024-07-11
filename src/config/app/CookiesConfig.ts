@@ -2,6 +2,7 @@ import { CookieOptions } from 'express';
 
 import ENVIRONMENT from '../constants/ENVIRONMENT';
 import TokensConfig from './TokensConfig';
+import URLS from '../constants/URLS';
 
 const RefreshTokenCookie = {
   key: 'refreshToken',
@@ -10,7 +11,7 @@ const RefreshTokenCookie = {
     // Only send in HTTPS
     secure: ENVIRONMENT.MODE === 'PRODUCTION',
     sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-    domain: `${ENVIRONMENT.CLIENT_DOMAIN}`,
+    domain: `${URLS.MAIN_URLS.CLIENT_FULL_URL}`,
     httpOnly: true,
   } as CookieOptions,
 };
@@ -23,7 +24,7 @@ const JWTCookie = {
     // Only send in HTTPS
     secure: ENVIRONMENT.MODE === 'PRODUCTION',
     sameSite: ENVIRONMENT.MODE === 'PRODUCTION' ? 'strict' : 'lax',
-    domain: `${ENVIRONMENT.CLIENT_DOMAIN}`,
+    domain: `${URLS.MAIN_URLS.CLIENT_FULL_URL}`,
   } as CookieOptions,
 };
 
