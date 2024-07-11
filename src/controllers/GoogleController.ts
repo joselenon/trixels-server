@@ -13,6 +13,7 @@ class GoogleController {
     try {
       const state = req.body.stateAuth;
       if (!state) throw new UnknownError('Invalid state.');
+      req.session.state = state;
 
       /* Requisições do client */
       res.header('Access-Control-Allow-Origin', CLIENT_FULL_URL);
@@ -47,6 +48,12 @@ class GoogleController {
 
       if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
       if (!state) throw new UnknownError('Invalid state.');
+
+      const storedState = req.session.state;
+
+      if (state !== storedState) {
+        throw new UnknownError('State does not match. Possible CSRF attack.');
+      }
 
       const redirectUrl = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 

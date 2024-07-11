@@ -321,12 +321,57 @@ class RaffleUtils {
     }
   }
 
+  static async getAllRafflesAndSaveInRedis() {
+    const allActiveRaffles = await FirebaseInstance.getManyDocumentsByParam<IRaffleInDb>('raffles', 'status', 'active');
+    const lastTenEndedRaffles = await FirebaseInstance.getManyDocumentsByParamInChunks<IRaffleInDb>({
+      collection: 'raffles',
+      param: 'status',
+      paramValue: 'ended',
+      chunkSize: 10,
+      orderByField: 'createdAt',
+      config: { forward: false },
+    });
+
+    const allRafflesRedisKey = getRedisKeyHelper('allRaffles');
+
+    if (!allActiveRaffles && lastTenEndedRaffles.documents.length <= 0) {
+      return await RedisInstance.set(allRafflesRedisKey, { activeRaffles: [], endedRaffles: [] }, { isJSON: true });
+    }
+
+    const allRaffles = [...allActiveRaffles.documents, ...lastTenEndedRaffles.documents];
+
+    const filteredRaffles = await Promise.all(
+      allRaffles.map(async (raffle) => {
+        const gameId = raffle.docId;
+        const raffleInDb = raffle.docData;
+        return await RaffleUtils.filterRaffleToFrontEnd(gameId, raffleInDb);
+      }),
+    );
+
+    const validRaffles = filteredRaffles.filter((raffle): raffle is IRaffleToFrontEnd => raffle !== undefined);
+
+    const activeRaffles = validRaffles.filter((raffle) => raffle.finishedAt === undefined);
+    const endedRaffles = validRaffles.filter((raffle) => raffle.finishedAt);
+
+    await RedisInstance.set(allRafflesRedisKey, { activeRaffles, endedRaffles }, { isJSON: true });
+
+    return { activeRaffles, endedRaffles };
+  }
+
   static async getRafflesFromRedis(): Promise<IRafflesInRedis | null> {
     const rafflesRedisKey = getRedisKeyHelper('allRaffles');
     const rafflesFromRedis = await RedisInstance.get<IRafflesInRedis>(rafflesRedisKey, { isJSON: true });
     if (!rafflesFromRedis) return null;
 
     return rafflesFromRedis;
+  }
+
+  static async getAllRaffles(): Promise<IRafflesInRedis> {
+    const rafflesFromRedis = await RaffleUtils.getRafflesFromRedis();
+    if (rafflesFromRedis) return rafflesFromRedis;
+
+    const allRaffles = await RaffleUtils.getAllRafflesAndSaveInRedis();
+    return allRaffles;
   }
 
   static async updateSpecificRaffleInRedis(
@@ -390,40 +435,6 @@ class RaffleUtils {
     const raffleUpdatedObj: IRaffleToFrontEnd = { ...raffleToUpdate, info: raffleInfoUpdatedObj };
 
     await RaffleUtils.updateSpecificRaffleInRedis(gameToUpdateId, raffleUpdatedObj, 'active');
-  }
-
-  static async getAllRafflesAndSaveInRedis() {
-    const raffles = await FirebaseInstance.getAllDocumentsByCollection<IRaffleInDb>('raffles');
-    const allRafflesRedisKey = getRedisKeyHelper('allRaffles');
-
-    if (!raffles) {
-      return await RedisInstance.set(allRafflesRedisKey, { activeRaffles: [], endedRaffles: [] }, { isJSON: true });
-    }
-
-    const filteredRaffles = await Promise.all(
-      raffles.result.map(async (raffle) => {
-        const gameId = raffle.docId;
-        const raffleInDb = raffle.docData;
-        return await RaffleUtils.filterRaffleToFrontEnd(gameId, raffleInDb);
-      }),
-    );
-
-    const validRaffles = filteredRaffles.filter((raffle): raffle is IRaffleToFrontEnd => raffle !== undefined);
-
-    const activeRaffles = validRaffles.filter((raffle) => raffle.finishedAt === undefined);
-    const endedRaffles = validRaffles.filter((raffle) => raffle.finishedAt);
-
-    await RedisInstance.set(allRafflesRedisKey, { activeRaffles, endedRaffles }, { isJSON: true });
-
-    return { activeRaffles, endedRaffles };
-  }
-
-  static async getAllRaffles(): Promise<IRafflesInRedis> {
-    const rafflesFromRedis = await RaffleUtils.getRafflesFromRedis();
-    if (rafflesFromRedis) return rafflesFromRedis;
-
-    const allRaffles = await RaffleUtils.getAllRafflesAndSaveInRedis();
-    return allRaffles;
   }
 
   static async processRafflesTicketsQueue(message: string) {
@@ -605,6 +616,7 @@ class CreateRaffle {
       createdBy: this.userDoc.docRef,
       updatedAt: nowTime,
       type: 'raffles',
+      status: 'active',
       description,
       info: {
         bets: [],
@@ -778,8 +790,14 @@ class UpdateRaffle {
     const raffleInDbResponse = await FirebaseInstance.getDocumentById<IRaffleInDb>('raffles', gameId);
     if (!raffleInDbResponse) throw new UnknownError('Raffle not found in db while updating raffle.');
     const { docData: raffleInDbData } = raffleInDbResponse;
+
+    const raffleObjBase = {
+      status: 'ended' as IRaffleInDb['status'],
+    };
+
     const raffleObjToDb: IRaffleInDb = {
       ...raffleInDbData,
+      ...raffleObjBase,
       info: { ...raffleInDbData.info, winnersBetsInfo: winnersBetsObjToDB },
       finishedAt: nowTime,
     };
@@ -791,6 +809,7 @@ class UpdateRaffle {
     });
     const raffleObjToRedis: IRaffleToFrontEnd = {
       ...raffleInRedis,
+      ...raffleObjBase,
       info: { ...raffleInRedis.info, winnersBetsInfo: winnersBetsObjToRedis },
       finishedAt: nowTime.toString(),
     };

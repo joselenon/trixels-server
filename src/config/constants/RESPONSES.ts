@@ -7,6 +7,7 @@ const RESPONSE_CONFIG = {
     REGISTERED_IN: "You're now registered",
     LOGGED_IN: "You're now logged",
     TICKET_BUY_SUCCESS: "You're now in!",
+    WALLET_VERIFICATION_STARTED: 'Wallet verification started...',
   },
 
   ERROR: {
@@ -59,7 +60,7 @@ const RESPONSE_CONFIG = {
       TICKET_ALREADY_TAKEN: 'Ticket already taken',
       QUANTITY_EXCEEDS_AVAILABLE_TICKETS: 'Quantity exceeds available tickets',
       WALLET_ALREADY_VERIFIED: 'Wallet already verified',
-      WALLET_VERIFICATION: 'Wallet verification failed',
+      WALLET_VERIFICATION_FAILED: 'Wallet verification failed',
       UNAVAILABLE_NETWORK: 'This network is currently unavailable',
       UNAVAILABLE_TOKEN: 'This token is currently unavailable',
       WALLET_ALREADY_IN_USE: 'Wallet already in use',

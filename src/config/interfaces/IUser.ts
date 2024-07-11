@@ -11,7 +11,7 @@ export interface IUser {
     updatedAt: number;
     verified: boolean;
     verifiedAt?: number;
-    googleSub?: string /* Unique id to identify an user despite an email change */;
+    googleSub: string | null /* Unique id to identify an user despite an email change */;
   };
   roninWallet: {
     value?: string;
@@ -38,6 +38,7 @@ export interface IUserToFrontEnd {
     verified: boolean;
     lastEmail: string;
     updatedAt: number;
+    googleSub: string | null;
   };
   roninWallet: {
     value?: string;

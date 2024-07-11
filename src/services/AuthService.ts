@@ -35,7 +35,8 @@ class AuthService {
 
   async setTokenToBlacklist(token: string) {
     const blacklistedTokensRedisKey = getRedisKeyHelper('blacklistedTokens');
-    await RedisInstance.rPush(blacklistedTokensRedisKey, token, undefined, TokensConfig.JWT.expirationInSec);
+    /* REVIEW (COLOCAR SISTEMA PARA EXPIRAR TOKENS INVÁLIDOS) */
+    await RedisInstance.rPush(blacklistedTokensRedisKey, token, undefined);
   }
 
   async validateAccessToken(refreshToken: string, accessToken: string) {

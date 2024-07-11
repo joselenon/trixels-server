@@ -27,7 +27,8 @@
     /*     "noUnusedLocals": true,
     "noUnusedParameters": true, */
 
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "typeRoots": ["./node_modules/@types", "./src/config/types"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "coverage", "**/__tests__", "**/*.spec.ts", "**/*.test.ts"]

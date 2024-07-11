@@ -157,6 +157,7 @@ class BalanceUpdateService {
       if (err instanceof SystemError) {
         throw new ProcessCreateRaffleItemError(JSON.stringify(item));
       }
+      throw err;
     }
   }
 
@@ -181,6 +182,7 @@ class BalanceUpdateService {
       if (err instanceof SystemError) {
         throw new ProcessBuyRaffleTicketItemError(JSON.stringify(item));
       }
+      throw err;
     }
   }
 
@@ -206,6 +208,7 @@ class BalanceUpdateService {
       if (err instanceof SystemError) {
         throw new ProcessPayWinnersItemError(JSON.stringify(item));
       }
+      throw err;
     }
   }
 
@@ -240,7 +243,7 @@ class BalanceUpdateService {
       await FirebaseInstance.firestore.runTransaction(async (transaction) => {
         const { env, userId } = item;
         const { transactionInfo } = env;
-        const { value, symbol, fromAddress } = transactionInfo;
+        const { value } = transactionInfo;
 
         const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
         const { docData: userData, docRef: userRef } = userRefQuery;
@@ -264,6 +267,7 @@ class BalanceUpdateService {
       if (err instanceof SystemError) {
         throw new ProcessDepositError(JSON.stringify(item));
       }
+      throw err;
     }
   }
 
@@ -274,7 +278,7 @@ class BalanceUpdateService {
 
         const { env, userId } = item;
         const { transactionInfo } = env;
-        const { value, symbol, fromAddress } = transactionInfo;
+        const { value } = transactionInfo;
 
         const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
         const { docData: userData, docRef: userRef } = userRefQuery;

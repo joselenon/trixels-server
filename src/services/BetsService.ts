@@ -1,4 +1,3 @@
-import { FirebaseInstance } from '..';
 import { IBetInDB, IBetToFrontEnd } from '../config/interfaces/IBet';
 import { TDBGamesCollections } from '../config/interfaces/IFirebase';
 import { IUser } from '../config/interfaces/IUser';
@@ -11,12 +10,9 @@ class BetsService {
 
     const getUserInfo = async (): Promise<IBetToFrontEnd['userRef']> => {
       const userDocId = userRef.id;
-      /*       const userDocId = userRef.id;
-      const userInDb = await FirebaseInstance.getDocumentById<IUser>('users', userDocId); */
-      const userInDb = (await (await userRef.get()).data()) as IUser;
+      const userInDb = (await userRef.get()).data() as IUser;
 
       if (userInDb) {
-        /*         const { avatar, username } = userInDb.docData; */
         const { avatar, username } = userInDb;
         return { avatar, username, userId: userDocId };
       } else {

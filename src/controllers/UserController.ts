@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import { AuthError } from '../config/errors/classes/ClientErrors';
-import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
+import UserService from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
 import CookiesConfig from '../config/app/CookiesConfig';
@@ -142,16 +142,11 @@ class UserController {
       const { userDoc } = validatedJWT;
 
       const { email, roninWallet } = req.body;
-      if (!email && !roninWallet) throw new InvalidPayloadError();
+      if (typeof email !== 'string' && typeof roninWallet !== 'string') throw new InvalidPayloadError();
 
-      const filteredPayload = {} as IUpdateUserCredentialsPayload;
+      const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, req.body);
 
-      if (email) filteredPayload.email = email;
-      if (roninWallet) filteredPayload.roninWallet = roninWallet;
-
-      await UserService.updateUserCredentials(userDoc, filteredPayload);
-
-      res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', null));
+      res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', userToFrontendUpdated));
     } catch (err) {
       next(err);
     }
@@ -167,7 +162,7 @@ class UserController {
 
       const response = await UserService.verifyWallet(userDoc.docId);
 
-      res.status(200).json(responseBody(true, 'WALLET_VERIFICATION', 'WALLET_VERIFICATION', response));
+      res.status(200).json(responseBody(true, 'WALLET_VERIFICATION', 'WALLET_VERIFICATION_STARTED', response));
     } catch (err) {
       next(err);
     }

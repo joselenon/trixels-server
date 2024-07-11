@@ -29,6 +29,7 @@ import webSocketServerConfig from '../config/app/server/webSocketServerConfig';
 import serverWillStartPlugin from '../config/app/server/serverWillStartPlugin';
 import { sentryPlugin } from '../config/app/server/requestDidStartPlugin';
 import cookieParser from 'cookie-parser';
+import sessionsMiddleware from '../middlewares/sessionsMiddleware';
 
 class AppService {
   private app: express.Application;
@@ -67,6 +68,7 @@ class AppService {
   }
 
   private setupMiddlewares(): void {
+    this.app.use(sessionsMiddleware());
     this.app.use(cookieParser());
     this.app.use(corsMiddleware());
     this.app.use(expressJSONMiddleware());

@@ -35,6 +35,7 @@ export interface IRaffleInDb {
   createdAt: number;
   createdBy: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>;
   updatedAt: number;
+  status: 'active' | 'cancelled' | 'ended';
   finishedAt?: number;
   type: 'raffles';
   description: string;
@@ -54,6 +55,7 @@ export interface IRaffleInDb {
   };
 }
 
+// ! TIMESTAMPS ARE STRING BECAUSE OF GRAPHQL (ERRORS WITH BIG NUMBERS)
 export interface IRaffleToFrontEnd {
   gameId: string;
   createdAt: string;
@@ -62,6 +64,7 @@ export interface IRaffleToFrontEnd {
     username: string;
     userId: string;
   };
+  status: 'active' | 'cancelled' | 'ended';
   finishedAt?: string;
   type: 'raffles';
   description: string;

@@ -10,7 +10,7 @@ import {
   WalletAlreadyVerifiedError,
   WalletVerificationError,
 } from '../config/errors/classes/ClientErrors';
-import { GoogleOAuthSystemError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
+import { GoogleOAuthSystemError, UnexpectedDatabaseError, UnknownError } from '../config/errors/classes/SystemErrors';
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
@@ -172,6 +172,7 @@ class UserService {
         verified: false,
         lastEmail: '',
         updatedAt: nowTime,
+        googleSub: null,
       },
       roninWallet: {
         value: '',
@@ -190,6 +191,7 @@ class UserService {
     }
   }
 
+  /* Juntar formação de payload do usuário em uma lógica só!! (updateUserCredentials) */
   async registerUserThroughGoogle({
     googleName,
     avatar,
@@ -251,20 +253,21 @@ class UserService {
     const { createdAt, username, avatar, roninWallet, email, balance } = userInfo;
     const isSameUser = userQueryingIsUserLogged;
 
-    const filteredWallet = () => {
-      if (!roninWallet.value) return { value: undefined };
+    let roninWalletFiltered: IUserToFrontEnd['roninWallet'] = { ...roninWallet };
 
-      if (isSameUser) {
-        return { value: roninWallet.value, verified: roninWallet.verified };
-      } else {
-        return { value: cutWalletAddress(roninWallet.value) };
-      }
-    };
+    if (isSameUser) {
+      roninWalletFiltered = { ...roninWalletFiltered, value: roninWallet.value || '' };
+    } else {
+      roninWalletFiltered = {
+        ...roninWalletFiltered,
+        value: roninWallet.value ? cutWalletAddress(roninWallet.value) : '',
+      };
+    }
 
     return {
       username,
       avatar,
-      roninWallet: filteredWallet(),
+      roninWallet: roninWalletFiltered,
       email: isSameUser ? email : undefined,
       balance: isSameUser ? balance : undefined,
       createdAt,
@@ -326,8 +329,8 @@ class UserService {
       return { userCredentials, userDocId: userCreatedId };
     }
 
-    const userRelatedToVerifiedEmail = usersRelatedToEmail.documents.find((user) => user.docData.email.verified);
-    if (!userRelatedToVerifiedEmail) throw new Error('user didnt verified email');
+    if (usersRelatedToEmail.documents.length > 1) throw new UnknownError('More than 1 user with same verified email.');
+    const userRelatedToVerifiedEmail = usersRelatedToEmail.documents[0];
 
     const userDocId = userRelatedToVerifiedEmail.docId;
     const userDocData = userRelatedToVerifiedEmail.docData;
@@ -385,7 +388,11 @@ class UserService {
     });
   }
 
-  async updateUserCredentials(userDoc: IFirebaseResponse<IUser>, payload: IUpdateUserCredentialsPayload) {
+  /* Juntar formação de payload do usuário em uma lógica só!! (registerUserThroughGoogle) */
+  async updateUserCredentials(
+    userDoc: IFirebaseResponse<IUser>,
+    payload: IUpdateUserCredentialsPayload,
+  ): Promise<IUserToFrontEnd> {
     const { docId, docData } = userDoc;
     const { email, roninWallet } = docData;
 
@@ -400,16 +407,17 @@ class UserService {
     });
 
     const filteredPayload = {} as IUser;
-    if (payload.email) {
+    if (typeof payload.email === 'string') {
       filteredPayload.email = {
         lastEmail: email.value,
         updatedAt: Date.now(),
         value: payload.email,
         verified: false,
+        googleSub: email.googleSub || null,
       };
     }
 
-    if (payload.roninWallet) {
+    if (typeof payload.roninWallet === 'string') {
       filteredPayload.roninWallet = {
         lastWallet: roninWallet.value,
         updatedAt: Date.now(),
@@ -418,7 +426,9 @@ class UserService {
       };
     }
 
-    return await FirebaseInstance.updateDocument('users', docId, filteredPayload);
+    const updatedUser = await FirebaseInstance.updateDocument<IUser>('users', docId, filteredPayload);
+
+    return this.filterUserInfoToFrontEnd({ userInfo: updatedUser.docData, userQueryingIsUserLogged: true });
   }
 
   /*   async createEthereumDepositWallet(userDocId: string) {
@@ -455,6 +465,7 @@ class UserService {
   } */
 
   async verifyWallet(userId: string): Promise<IWalletVerificationInRedis> {
+    const nowTime = Date.now();
     const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
 
     const { roninWallet } = docData;
@@ -479,6 +490,7 @@ class UserService {
       createdAt: nowDate,
       userId,
       roninWallet: roninWallet.value,
+      expiresAt: nowTime + WALLET_VERIFICATION_EXPIRATION_IN_SECONDS * 1000,
       ...randomValueToSend,
     };
 

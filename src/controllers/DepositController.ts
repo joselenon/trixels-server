@@ -8,10 +8,10 @@ import JWTService from '../services/JWTService';
 class DepositController {
   async getDepositWallet(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.cookies.accessToken;
+      const token = req.cookies.accessToken as string;
       const payload = req.body;
 
-      const { userDoc } = await JWTService.validateJWT(token);
+      const { userDoc } = await JWTService.validateJWT({ token: token });
 
       const validatedPayload = PayloadValidator.verifyGetDepositWalletPayload(payload);
       const walletAddress = await DepositService.getDepositWallet(userDoc.docId, validatedPayload);
@@ -26,10 +26,10 @@ class DepositController {
 
   async redeemCode(req: Request, res: Response, next: NextFunction) {
     try {
-      const token = req.cookies.accessToken;
+      const token = req.cookies.accessToken as string;
       const payload = req.body;
 
-      const { userDoc } = await JWTService.validateJWT(token);
+      const { userDoc } = await JWTService.validateJWT({ token: token });
 
       await DepositService.redeemCode(userDoc.docId, payload);
 
