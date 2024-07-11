@@ -68,9 +68,9 @@ class AppService {
   }
 
   private setupMiddlewares(): void {
-    this.app.use(sessionsMiddleware());
     this.app.use(cookieParser());
     this.app.use(corsMiddleware());
+    this.app.use(sessionsMiddleware());
     this.app.use(expressJSONMiddleware());
     this.app.use(expressURLEncodedMiddleware());
 
