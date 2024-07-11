@@ -15,7 +15,7 @@ export const API_URL = `${SERVER_FULL_URL}${API_BASE}`;
 
 /* __CLIENT__ */
 /* https://clientdomain.com OU http://localhost */
-const CLIENT_URL = `${PROTOCOL}${ENVIRONMENT.CLIENT_DOMAIN}`;
+const CLIENT_URL = `${PROTOCOL}${ENVIRONMENT.CLIENT_SUBDOMAIN_DOMAIN}`;
 /* CLIENT PORT */
 const CLIENT_PORT = ENVIRONMENT.CLIENT_PORT;
 /* https://clientdomain.com OU http://localhost:PORT */
