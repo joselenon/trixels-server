@@ -9,7 +9,7 @@ const ENVIRONMENT = {
   MODE: process.env.MODE as 'DEVELOPMENT' | 'PRODUCTION',
   HTTPS: process.env.HTTPS === 'true' ? true : false,
   DOMAIN: process.env.CLIENT_DOMAIN || 'localhost',
-  SERVER_SUBDOMAIN_DOMAIN: process.env.SERVER_DOMAIN || 'localhost',
+  SERVER_SUBDOMAIN_DOMAIN: process.env.SERVER_SUBDOMAIN_DOMAIN || 'localhost',
   SERVER_PORT: process.env.SERVER_PORT || '4000',
   CLIENT_SUBDOMAIN_DOMAIN: process.env.CLIENT_SUBDOMAIN_DOMAIN || 'localhost',
   CLIENT_PORT: process.env.CLIENT_PORT || '3000',
