@@ -461,7 +461,7 @@ class RaffleUtils {
       authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
         type: 'buyRaffleTicket',
         userId,
-        env: { totalAmountBet: amountBet },
+        env: { totalAmountBet: amountBet, pubSubConfig: { reqType: 'BUY_RAFFLE_TICKET', userId } },
       });
 
       if (authorization && !authorization.authorized) {
@@ -575,6 +575,7 @@ class CreateRaffle {
   private totalTickets: IRaffleCreationPayload['totalTickets'];
   private userDoc: IFirebaseResponse<IUser>;
   private description: string;
+  private request: string;
 
   constructor({
     raffleCreationPayload,
@@ -583,7 +584,7 @@ class CreateRaffle {
     raffleCreationPayload: IRaffleCreationPayload;
     userDoc: IFirebaseResponse<IUser>;
   }) {
-    const { discountPercentage, privacy, prizes, totalTickets, description } = raffleCreationPayload;
+    const { discountPercentage, privacy, prizes, totalTickets, description, request } = raffleCreationPayload;
 
     this.discountPercentage = discountPercentage;
     this.privacy = privacy;
@@ -591,6 +592,7 @@ class CreateRaffle {
     this.totalTickets = totalTickets;
     this.userDoc = userDoc;
     this.description = description;
+    this.request = request;
   }
 
   async create(): Promise<void> {
@@ -602,6 +604,7 @@ class CreateRaffle {
       prizes: this.prizes,
       totalTickets: this.totalTickets,
       description: this.description,
+      request: this.request,
     };
 
     const { privacy, totalTickets, description } = payload;
@@ -633,7 +636,10 @@ class CreateRaffle {
     const authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
       userId: this.userDoc.docId,
       type: 'createRaffle',
-      env: { totalAmountBet: raffleOwnerCost },
+      env: {
+        totalAmountBet: raffleOwnerCost,
+        pubSubConfig: { userId: this.userDoc.docId, reqType: 'CREATE_RAFFLE', request: this.request },
+      },
     });
     if (authorization && !authorization.authorized) {
       return;
@@ -668,6 +674,8 @@ class CreateRaffle {
       });
       transaction.set(newBetRef, betInDbObj);
 
+      console.log('requesssttt', this.request);
+
       const pubSubData: IPubSubCreateRaffleData = { gameId: newRaffleId };
       PubSubEventManager.publishEvent(
         'GET_LIVE_MESSAGES',
@@ -676,6 +684,7 @@ class CreateRaffle {
           message: 'RAFFLE_CREATION_SUCCESS',
           type: 'CREATE_RAFFLE',
           data: JSON.stringify(pubSubData),
+          request: this.request,
         },
         this.userDoc.docId,
       );

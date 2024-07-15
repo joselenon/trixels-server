@@ -16,9 +16,14 @@ class DepositController {
       const validatedPayload = PayloadValidator.verifyGetDepositWalletPayload(payload);
       const walletAddress = await DepositService.getDepositWallet(userDoc.docId, validatedPayload);
 
-      return res
-        .status(200)
-        .json(responseBody<IGetDepositWalletResponse>(true, 'REDEEM_CODE', 'REDEEM_CODE_MSG', walletAddress));
+      return res.status(200).json(
+        responseBody<IGetDepositWalletResponse>({
+          success: true,
+          type: 'REDEEM_CODE',
+          message: 'REDEEM_CODE_MSG',
+          data: walletAddress,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -33,7 +38,9 @@ class DepositController {
 
       await DepositService.redeemCode(userDoc.docId, payload);
 
-      return res.status(200).json(responseBody(true, 'REDEEM_CODE', 'REDEEM_CODE_MSG', null));
+      return res
+        .status(200)
+        .json(responseBody({ success: true, type: 'REDEEM_CODE', message: 'REDEEM_CODE_MSG', data: null }));
     } catch (err) {
       next(err);
     }

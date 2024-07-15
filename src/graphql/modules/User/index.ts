@@ -16,7 +16,7 @@ const resolvers = {
         const userData = await UserController.getUser(userDoc.docId);
         if (!userData) throw new DocumentNotFoundError();
 
-        return responseBody(true, 'GET_USER_INFO', 'GET_MSG', userData.docData);
+        return responseBody({ success: true, type: 'GET_USER_INFO', message: 'GET_MSG', data: userData.docData });
       } catch (err) {
         validateAndCaptureError(err);
       }
@@ -36,7 +36,7 @@ const resolvers = {
           userId,
         );
 
-        return responseBody(true, 'GET_BALANCE', 'GET_MSG', balance);
+        return responseBody({ success: true, type: 'GET_BALANCE', message: 'GET_MSG', data: balance });
       } catch (err) {
         validateAndCaptureError(err);
       }

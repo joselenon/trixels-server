@@ -17,4 +17,5 @@ export interface IRaffleCreationPayload {
     type: 'public' | 'private';
   };
   prizes: TRaffleCreationPrizesWinners;
+  request: string;
 }

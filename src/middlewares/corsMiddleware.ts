@@ -5,6 +5,5 @@ import URLS from '../config/constants/URLS';
 
 //FALSE CREDENTIALS!!!!
 export default function corsMiddleware() {
-  console.log(URLS.MAIN_URLS.CLIENT_FULL_URL);
   return cors({ origin: URLS.MAIN_URLS.CLIENT_FULL_URL, credentials: true });
 }

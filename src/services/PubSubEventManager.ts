@@ -28,9 +28,10 @@ export type TGQLResponsesTypes =
   | 'WALLET_VERIFICATION'
   | 'GET_DEPOSIT_METHODS';
 
-interface IPubSubEventPayload<D> {
+export interface IPubSubEventPayload<D> {
   success: boolean;
   type: TGQLResponsesTypes;
+  request?: string;
   message: TMessages;
   data?: D;
 }
@@ -60,7 +61,7 @@ class PubSubEventManager {
     const formattedTriggerName = isPrivate ? `${triggerName}:${userDocId}` : triggerName;
 
     const action = {
-      [actionKey]: responseBody(payload.success, payload.type, payload.message, payload.data),
+      [actionKey]: responseBody(payload),
     };
 
     await this.publishPSubEvent(formattedTriggerName, action);

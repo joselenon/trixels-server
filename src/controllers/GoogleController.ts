@@ -37,7 +37,9 @@ class GoogleController {
         state,
       });
 
-      res.status(200).json(responseBody(true, 'LOG_USER', 'GET_MSG', { authorizeUrl }));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'LOG_USER', message: 'GET_MSG', data: { authorizeUrl } }));
     } catch (err) {
       next(err);
     }
@@ -52,6 +54,7 @@ class GoogleController {
       if (!state) throw new UnknownError('Invalid state.');
 
       const storedState = req.session.state;
+      console.log(storedState);
 
       console.log('state', state);
       console.log('storedState', storedState);

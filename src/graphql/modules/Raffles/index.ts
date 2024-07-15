@@ -11,7 +11,7 @@ const resolvers = {
 
         const allRaffles = await RafflesControllerGQL.getAllRaffles();
 
-        return responseBody(true, 'GET_LIVE_RAFFLES', 'GET_MSG', allRaffles);
+        return responseBody({ success: true, type: 'GET_LIVE_RAFFLES', message: 'GET_MSG', data: allRaffles });
       } catch (err) {
         validateAndCaptureError(err);
       }

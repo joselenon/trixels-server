@@ -49,6 +49,7 @@ type MessagesResponse {
   message: String!
   type: String!
   data: String!
+  request: String
 }
 
 type Query {

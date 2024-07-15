@@ -40,7 +40,11 @@ class UserController {
 
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
-      res.status(200).json(responseBody(true, 'REGISTER_USER', 'REGISTERED_IN', { userCredentials }));
+      res
+        .status(200)
+        .json(
+          responseBody({ success: true, type: 'REGISTER_USER', message: 'REGISTERED_IN', data: { userCredentials } }),
+        );
     } catch (err) {
       next(err);
     }
@@ -69,7 +73,9 @@ class UserController {
 
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
-      res.status(200).json(responseBody(true, 'LOG_USER', 'LOGGED_IN', { userCredentials }));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'LOG_USER', message: 'LOGGED_IN', data: { userCredentials } }));
     } catch (err) {
       next(err);
     }
@@ -79,7 +85,7 @@ class UserController {
     try {
       res.clearCookie(CookiesConfig.RefreshTokenCookie.key, CookiesConfig.RefreshTokenCookie.config);
       res.clearCookie(CookiesConfig.JWTCookie.key, CookiesConfig.JWTCookie.config);
-      res.status(200).json(responseBody(true, 'LOG_USER', 'LOGGED_IN', null));
+      res.status(200).json(responseBody({ success: true, type: 'LOG_USER', message: 'LOGGED_IN', data: null }));
     } catch (err) {
       next(err);
     }
@@ -98,7 +104,14 @@ class UserController {
         userQueryingIsUserLogged: true,
       });
 
-      res.status(200).json(responseBody<IUserToFrontEnd>(true, 'GET_USER_INFO', 'GET_MSG', userCredentials));
+      res.status(200).json(
+        responseBody<IUserToFrontEnd>({
+          success: true,
+          type: 'GET_USER_INFO',
+          message: 'GET_MSG',
+          data: userCredentials,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -127,7 +140,14 @@ class UserController {
 
       const userCredentials = await UserService.getUserInDb(requesterUsername, usernameToQuery || requesterUsername!);
 
-      res.status(200).json(responseBody<IUserToFrontEnd>(true, 'GET_USER_INFO', 'GET_MSG', userCredentials));
+      res.status(200).json(
+        responseBody<IUserToFrontEnd>({
+          success: true,
+          type: 'GET_USER_INFO',
+          message: 'GET_MSG',
+          data: userCredentials,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -146,7 +166,14 @@ class UserController {
 
       const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, req.body);
 
-      res.status(200).json(responseBody(true, 'UPDATE_USER_CREDENTIALS', 'UPDATE_MSG', userToFrontendUpdated));
+      res.status(200).json(
+        responseBody({
+          success: true,
+          type: 'UPDATE_USER_CREDENTIALS',
+          message: 'UPDATE_MSG',
+          data: userToFrontendUpdated,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -162,7 +189,14 @@ class UserController {
 
       const response = await UserService.verifyWallet(userDoc.docId);
 
-      res.status(200).json(responseBody(true, 'WALLET_VERIFICATION', 'WALLET_VERIFICATION_STARTED', response));
+      res.status(200).json(
+        responseBody({
+          success: true,
+          type: 'WALLET_VERIFICATION',
+          message: 'WALLET_VERIFICATION_STARTED',
+          data: response,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -178,7 +212,9 @@ class UserController {
 
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
-      res.status(200).json(responseBody(true, 'REFRESH_ACCESS_TOKEN', 'GET_MSG', null));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'REFRESH_ACCESS_TOKEN', message: 'GET_MSG', data: null }));
     } catch (err) {
       next(err);
     }
@@ -193,7 +229,9 @@ class UserController {
 
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
-      res.status(200).json(responseBody(true, 'REFRESH_ACCESS_TOKEN', 'GET_MSG', null));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'REFRESH_ACCESS_TOKEN', message: 'GET_MSG', data: null }));
     } catch (err) {
       next(err);
     }

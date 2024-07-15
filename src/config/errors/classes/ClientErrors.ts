@@ -1,10 +1,11 @@
 // Errors occurred because of unauthorized or invalid requests by the user (shared with client)
-import PubSubEventManager from '../../../services/PubSubEventManager';
+import PubSubEventManager, { IPubSubEventPayload } from '../../../services/PubSubEventManager';
 import { RESPONSE_CONFIG } from '../../constants/RESPONSES';
 
 export interface IPubSubConfig {
   userId: string;
-  reqType: 'CREATE_RAFFLE' | 'BUY_RAFFLE_TICKET';
+  reqType: IPubSubEventPayload<null>['type'];
+  request?: IPubSubEventPayload<null>['request'];
 }
 
 export abstract class ClientError extends Error {
@@ -126,6 +127,7 @@ export class InsufficientBalanceError extends ClientError {
         success: false,
         type: pubSubConfig.reqType,
         message: 'INSUFFICIENT_BALANCE',
+        request: pubSubConfig.request,
         data: '',
       },
       pubSubConfig.userId,
@@ -146,6 +148,7 @@ export class GameAlreadyFinished extends ClientError {
         success: false,
         type: pubSubConfig.reqType,
         message: 'GAME_ALREADY_FINISHED',
+        request: pubSubConfig.request,
         data: '',
       },
       pubSubConfig.userId,
@@ -167,6 +170,7 @@ export class TicketAlreadyTaken extends ClientError {
         success: false,
         type: pubSubConfig.reqType,
         message: 'TICKET_ALREADY_TAKEN',
+        request: pubSubConfig.request,
         data: '',
       },
       pubSubConfig.userId,
@@ -187,6 +191,7 @@ export class QuantityExceedsAvailableTickets extends ClientError {
         success: false,
         type: pubSubConfig.reqType,
         message: 'QUANTITY_EXCEEDS_AVAILABLE_TICKETS',
+        request: pubSubConfig.request,
         data: '',
       },
       pubSubConfig.userId,

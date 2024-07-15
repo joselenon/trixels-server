@@ -12,7 +12,9 @@ class RafflesController {
   getAvailableItems(_: Request, res: Response, next: NextFunction) {
     try {
       const availableItems = itemsInfo;
-      res.status(200).json(responseBody(true, 'GET_AVAILABLE_ITEMS', 'GET_MSG', availableItems));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'GET_AVAILABLE_ITEMS', message: 'GET_MSG', data: availableItems }));
     } catch (err) {
       next(err);
     }
@@ -32,7 +34,9 @@ class RafflesController {
         userDoc,
         raffleCreationPayload: validatedPayload,
       }).create();
-      res.status(200).json(responseBody(true, 'CREATE_RAFFLE', 'GET_MSG', raffleIdResponse));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'CREATE_RAFFLE', message: 'GET_MSG', data: raffleIdResponse }));
     } catch (err) {
       next(err);
     }
@@ -61,7 +65,9 @@ class RafflesController {
 
       await RabbitMQInstance.sendMessage('evenRafflesQueue', buyRaffleTicketsPayloadRedis);
 
-      res.status(200).json(responseBody(true, 'BUY_RAFFLE_TICKET', 'TICKET_BUY_SUCCESS', null));
+      res
+        .status(200)
+        .json(responseBody({ success: true, type: 'BUY_RAFFLE_TICKET', message: 'TICKET_BUY_SUCCESS', data: null }));
     } catch (err) {
       next(err);
     }

@@ -17,6 +17,7 @@ import { SystemError } from '../config/errors/classes/SystemErrors';
 
 export interface ISpendActionEnv {
   totalAmountBet: number;
+  pubSubConfig: IPubSubConfig;
 }
 
 export interface IReceiveActionEnv {
@@ -135,16 +136,13 @@ class BalanceUpdateService {
   async processCreateRaffleItem(item: IBalanceUpdateItemPayload<ISpendActionEnv>) {
     try {
       const { userId, env } = item;
-      const { totalAmountBet } = env;
+      const { totalAmountBet, pubSubConfig } = env;
 
       await FirebaseInstance.firestore.runTransaction(async (transaction) => {
         const { balance: userBalance, docRef: userRef } = await BalanceUpdateService.validateBalance(
           userId,
           totalAmountBet,
-          {
-            userId,
-            reqType: 'CREATE_RAFFLE',
-          },
+          pubSubConfig,
         );
 
         const newUserBalance = calcWithDecimalsService(userBalance, 'subtract', totalAmountBet);

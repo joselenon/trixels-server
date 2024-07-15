@@ -31,7 +31,8 @@ class PayloadValidator {
       !this.hasProperty(payload.privacy, 'type') ||
       !this.hasProperty(payload.privacy, 'mode') ||
       !this.hasProperty(payload, 'prizes') ||
-      !this.hasProperty(payload, 'description')
+      !this.hasProperty(payload, 'description') ||
+      !this.hasProperty(payload, 'request')
     ) {
       throw new InvalidPayloadError();
     }
@@ -66,8 +67,15 @@ class PayloadValidator {
     }
 
     const forcedPayload = payload as IRaffleCreationPayload;
-    const { description, discountPercentage, privacy, prizes, totalTickets } = forcedPayload;
-    const validPayload: IRaffleCreationPayload = { description, discountPercentage, privacy, prizes, totalTickets };
+    const { description, discountPercentage, privacy, prizes, totalTickets, request } = forcedPayload;
+    const validPayload: IRaffleCreationPayload = {
+      description,
+      discountPercentage,
+      privacy,
+      prizes,
+      totalTickets,
+      request,
+    };
     return validPayload;
   }
 }

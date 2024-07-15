@@ -26,7 +26,11 @@ class TransactionsController {
 
       const userTransactions = await TransactionsService.getUserTransactions(userRef, payload);
 
-      return res.status(200).json(responseBody(true, 'GET_USER_TRANSACTIONS', 'GET_MSG', userTransactions));
+      return res
+        .status(200)
+        .json(
+          responseBody({ success: true, type: 'GET_USER_TRANSACTIONS', message: 'GET_MSG', data: userTransactions }),
+        );
     } catch (err) {
       next(err);
     }
