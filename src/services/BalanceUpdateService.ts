@@ -224,7 +224,7 @@ class BalanceUpdateService {
       return { wasAVerification: false };
     }
 
-    const redisKey = getRedisKeyHelper('walletVerification', fromAddress);
+    const redisKey = getRedisKeyHelper('walletVerification');
     const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
     console.log('walletVerificationInRedis', walletVerificationInRedis);
 
