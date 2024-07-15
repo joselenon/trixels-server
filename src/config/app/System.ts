@@ -1,5 +1,5 @@
 /* 15 minutes till wallet verification redis payload expire */
-const WALLET_VERIFICATION_EXPIRATION_IN_SECONDS = 15 * 60;
+const WALLET_VERIFICATION_EXPIRATION_IN_SECONDS = 2 * 60;
 
 const TRIXELS_WALLET_ADDRESS = '0x487334120ce8d27834bfc510a878b529fc101e13';
 

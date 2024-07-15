@@ -92,14 +92,14 @@ class SkyMavisWebhookService {
       return;
     }
 
-    const userRelatedToAddress = await FirebaseInstance.getManyDocumentsByParam<IUser>(
+    const usersRelatedToAddress = await FirebaseInstance.getManyDocumentsByParam<IUser>(
       'users',
       'roninWallet.value',
       fromAddress,
     );
 
     /* Guarantee that only one user can have a specific verified wallet address */
-    const userRelated = userRelatedToAddress.documents.filter((user) => user.docData.roninWallet.verified);
+    const userRelated = usersRelatedToAddress.documents.filter((user) => user.docData.roninWallet.verified);
     let verifiedWalletOwnerId = userRelated.length > 0 ? userRelated[0].docId : null;
 
     /* Iterar sobre usuarios com a wallet e o que a amount bater, ele verifica! */
@@ -108,7 +108,7 @@ class SkyMavisWebhookService {
       transactionValue: value,
       fromAddress: fromAddress,
     });
-    console.log('Verifying, ', payload);
+
     if (checkForWalletVerification.wasAVerification && checkForWalletVerification.userIdRelatedToVerifiedAddress) {
       verifiedWalletOwnerId = checkForWalletVerification.userIdRelatedToVerifiedAddress;
 

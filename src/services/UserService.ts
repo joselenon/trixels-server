@@ -464,20 +464,8 @@ class UserService {
     return walletInDb.result.publicAddress;
   } */
 
-  async verifyWallet(userId: string): Promise<IWalletVerificationInRedis> {
-    const nowTime = Date.now();
-    const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
-
-    const { roninWallet } = docData;
-    if (!roninWallet.value) throw new WalletVerificationError();
-    if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
-
-    const redisKey = getRedisKeyHelper('walletVerification', roninWallet.value);
-    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
-
-    if (walletVerificationInRedis) {
-      return walletVerificationInRedis;
-    }
+  async startWalletVerification(nowTime: number, userId: string, roninWallet: string) {
+    const walletVerificationRedisKey = getRedisKeyHelper('walletVerification');
 
     const nowDate = Date.now();
     function getRandomNumber() {
@@ -486,22 +474,43 @@ class UserService {
     }
 
     const randomValueToSend = { randomValue: getRandomNumber() };
+
     const walletVerificationRedisPayload: IWalletVerificationInRedis = {
       createdAt: nowDate,
       userId,
-      roninWallet: roninWallet.value,
+      roninWallet,
       expiresAt: nowTime + WALLET_VERIFICATION_EXPIRATION_IN_SECONDS * 1000,
       ...randomValueToSend,
     };
 
     await RedisInstance.set(
-      redisKey,
+      walletVerificationRedisKey,
       walletVerificationRedisPayload,
       { isJSON: true },
       WALLET_VERIFICATION_EXPIRATION_IN_SECONDS,
     );
 
     return walletVerificationRedisPayload;
+  }
+
+  async verifyWallet(userId: string): Promise<IWalletVerificationInRedis> {
+    const nowTime = Date.now();
+    const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
+
+    const { roninWallet } = docData;
+    if (!roninWallet.value) throw new WalletVerificationError();
+    if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
+
+    const walletVerificationRedisKey = getRedisKeyHelper('walletVerification', roninWallet.value);
+    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(walletVerificationRedisKey, {
+      isJSON: true,
+    });
+
+    if (walletVerificationInRedis && walletVerificationInRedis.roninWallet === roninWallet.value) {
+      return walletVerificationInRedis;
+    }
+
+    return await this.startWalletVerification(nowTime, userId, roninWallet.value);
   }
 
   async getUserCredentialsById(userId: string, userQueryingIsUserLogged: boolean) {

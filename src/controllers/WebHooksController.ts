@@ -11,7 +11,6 @@ class WebHooksController {
       const payload = req.body;
       HMACVerifier(payload, skyMavisSignature);
 
-      console.log('payload', payload);
       await SkyMavisWebhookService.receiveInfo(payload);
 
       res.status(200).json(responseBody({ success: true, type: 'GET_USER_INFO', message: 'GENERIC_MSG', data: null }));

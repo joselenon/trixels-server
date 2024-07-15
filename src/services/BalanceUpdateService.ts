@@ -225,15 +225,20 @@ class BalanceUpdateService {
     }
 
     const redisKey = getRedisKeyHelper('walletVerification', fromAddress);
-    const walletVerificationItems =
-      (await RedisInstance.lRange<IWalletVerificationInRedis>(redisKey, { start: 0, end: -1 }, { isJSON: true })) || [];
-    const walletVerificationItemRelated = walletVerificationItems.find(
-      (item) => parseFloat(item.randomValue.toFixed(7)) === transactionValue,
-    );
+    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
 
-    if (!walletVerificationItemRelated) return { wasAVerification: false };
+    if (walletVerificationInRedis) {
+      const { randomValue, userId } = walletVerificationInRedis;
 
-    return { wasAVerification: true, userIdRelatedToVerifiedAddress: walletVerificationItemRelated.userId };
+      const roundedTransactionValue = parseFloat(transactionValue.toFixed(6));
+      const roundedRandomValue = parseFloat(randomValue.toFixed(6));
+
+      if (roundedTransactionValue === roundedRandomValue) {
+        return { wasAVerification: true, userIdRelatedToVerifiedAddress: userId };
+      }
+    }
+
+    return { wasAVerification: false };
   }
 
   async processDeposit(item: IBalanceUpdateItemPayload<IDepositEnv>) {
