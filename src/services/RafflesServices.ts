@@ -2,7 +2,12 @@ import { FirebaseInstance, RabbitMQInstance, RedisInstance } from '..';
 import itemsInfo, { IItemsInfo } from '../assets/itemsInfo';
 import { getAllPrizesItems } from '../common/raffleObjInteractions';
 import { TotalTimeToRoll } from '../config/app/games/RaffleConfig';
-import { GameAlreadyFinished, IPubSubConfig, InsufficientBalanceError } from '../config/errors/classes/ClientErrors';
+import {
+  GameAlreadyFinished,
+  IPubSubConfig,
+  InsufficientBalanceError,
+  TicketBuyLimitReached,
+} from '../config/errors/classes/ClientErrors';
 import { InvalidPayloadError, RaffleLostError, UnknownError } from '../config/errors/classes/SystemErrors';
 import {
   IBetInDB,
@@ -443,7 +448,7 @@ class RaffleUtils {
 
     const messageToObj: IBuyRaffleTicketsPayloadRedis = JSON.parse(message);
     const { gameId, userId, createdAt, info } = messageToObj;
-    const { randomTicket } = info;
+    const { randomTicket, ticketNumbers } = info;
 
     try {
       const raffleInRedis = await RaffleUtils.getSpecificRaffleInRedis({
@@ -452,7 +457,15 @@ class RaffleUtils {
         userId,
         reqType: 'BUY_RAFFLE_TICKET',
       });
-      const { ticketsBought, totalTickets, ticketPrice } = raffleInRedis.info;
+      const { ticketsBought, totalTickets, ticketPrice, bets, maxTicketsPerUser } = raffleInRedis.info;
+
+      const userBets = bets.filter((bet) => bet.userRef.userId === userId);
+      if (
+        maxTicketsPerUser &&
+        (userBets.length === maxTicketsPerUser || userBets.length + ticketNumbers.length > maxTicketsPerUser)
+      ) {
+        throw new TicketBuyLimitReached({ reqType: 'BUY_RAFFLE_TICKET', userId });
+      }
 
       const TicketNumberInstance = new RaffleTicketNumbersService(userId, raffleInRedis);
       const ticketNumbersFiltered = await TicketNumberInstance.getTicketNumbersFiltered(messageToObj);
@@ -573,6 +586,7 @@ class CreateRaffle {
   private privacy: IRaffleCreationPayload['privacy'];
   private prizes: IRaffleCreationPayload['prizes'];
   private totalTickets: IRaffleCreationPayload['totalTickets'];
+  private maxTicketsPerUser: IRaffleCreationPayload['maxTicketsPerUser'];
   private userDoc: IFirebaseResponse<IUser>;
   private description: string;
   private request: string;
@@ -584,7 +598,8 @@ class CreateRaffle {
     raffleCreationPayload: IRaffleCreationPayload;
     userDoc: IFirebaseResponse<IUser>;
   }) {
-    const { discountPercentage, privacy, prizes, totalTickets, description, request } = raffleCreationPayload;
+    const { discountPercentage, privacy, prizes, totalTickets, description, request, maxTicketsPerUser } =
+      raffleCreationPayload;
 
     this.discountPercentage = discountPercentage;
     this.privacy = privacy;
@@ -593,6 +608,7 @@ class CreateRaffle {
     this.userDoc = userDoc;
     this.description = description;
     this.request = request;
+    this.maxTicketsPerUser = maxTicketsPerUser;
   }
 
   async create(): Promise<void> {
@@ -605,9 +621,10 @@ class CreateRaffle {
       totalTickets: this.totalTickets,
       description: this.description,
       request: this.request,
+      maxTicketsPerUser: this.maxTicketsPerUser,
     };
 
-    const { privacy, totalTickets, description } = payload;
+    const { privacy, totalTickets, description, maxTicketsPerUser } = payload;
 
     const raffleCalcs = RaffleUtils.getRaffleDetails(payload);
     const { raffleOwnerCost, winnersPrizesObj, prizesTotalValue, ticketPrice } = raffleCalcs;
@@ -629,6 +646,7 @@ class CreateRaffle {
         prizesTotalValue,
         privacy,
         prizes: winnersPrizesObj,
+        maxTicketsPerUser,
       },
     };
 

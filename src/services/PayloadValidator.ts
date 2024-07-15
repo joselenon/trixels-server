@@ -61,13 +61,17 @@ class PayloadValidator {
       (payload.privacy.mode !== 'public' && payload.privacy.mode !== 'guildMembers') ||
       typeof payload.prizes !== 'object' ||
       !isValidPrizes(payload.prizes) ||
-      typeof payload.description !== 'string'
+      typeof payload.description !== 'string' ||
+      (payload.maxTicketsPerUser &&
+        typeof payload.maxTicketsPerUser !== 'number' &&
+        typeof payload.maxTicketsPerUser !== 'undefined')
     ) {
       throw new InvalidPayloadError();
     }
 
     const forcedPayload = payload as IRaffleCreationPayload;
-    const { description, discountPercentage, privacy, prizes, totalTickets, request } = forcedPayload;
+    const { description, discountPercentage, privacy, prizes, totalTickets, request, maxTicketsPerUser } =
+      forcedPayload;
     const validPayload: IRaffleCreationPayload = {
       description,
       discountPercentage,
@@ -75,6 +79,7 @@ class PayloadValidator {
       prizes,
       totalTickets,
       request,
+      maxTicketsPerUser,
     };
     return validPayload;
   }

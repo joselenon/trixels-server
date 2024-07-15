@@ -198,3 +198,24 @@ export class QuantityExceedsAvailableTickets extends ClientError {
     );
   }
 }
+
+export class TicketBuyLimitReached extends ClientError {
+  constructor(
+    pubSubConfig: IPubSubConfig,
+    message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.QUANTITY_EXCEEDS_AVAILABLE_TICKETS,
+  ) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Game, 403);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'TICKET_BUY_LIMIT_REACHED',
+        request: pubSubConfig.request,
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
+  }
+}

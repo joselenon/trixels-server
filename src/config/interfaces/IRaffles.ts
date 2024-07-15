@@ -52,6 +52,7 @@ export interface IRaffleInDb {
 
     prizes: TRaffleWinnersPrizes;
     winnersBetsInfo?: TWinnerBetsInDb;
+    maxTicketsPerUser?: number;
   };
 }
 
@@ -80,6 +81,7 @@ export interface IRaffleToFrontEnd {
     };
     prizes: string /* MUDADO PARA STRING (JSON) MOMENTANEAMENTE, DEVIDO A VARIABILIDADE DE QUANTIDADE DE PREMIOS - GRAPHQL */;
     winnersBetsInfo?: TWinnerBetsInRedis;
+    maxTicketsPerUser?: number;
   };
 }
 

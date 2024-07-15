@@ -65,6 +65,7 @@ const RESPONSE_CONFIG = {
       UNAVAILABLE_NETWORK: 'This network is currently unavailable',
       UNAVAILABLE_TOKEN: 'This token is currently unavailable',
       WALLET_ALREADY_IN_USE: 'Wallet already in use',
+      TICKET_BUY_LIMIT_REACHED: 'Ticket limit reached',
     },
   },
 };
