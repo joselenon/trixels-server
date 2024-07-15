@@ -79,73 +79,84 @@ interface IRonTransferPayload extends WebhookPayload {
 }
 
 class SkyMavisWebhookService {
-  /* REVIEW AND REFACTOR */
-  async addressActivity(payload: IAddressActivityPayload) {
-    console.log('payloaddd', payload);
-    const nowTime = Date.now();
+  async differentActivities(payload: IAddressActivityPayload) {
+    await FirebaseInstance.writeDocument('differentActivities', { payload });
+  }
 
-    /* FIX THIS ([0] is wrong) */
-    const { fromAddress, value, symbol, toAddress } = payload.event.activities[0];
-
-    /* FIX THIS (RESOURCE IN CASE TOKENS GET OUT FROM TRIXELS WALLET) */
+  isTrixelsSending(toAddress: string) {
     if (toAddress !== TRIXELS_WALLET_ADDRESS) {
       console.log('Sending tokens...');
-      return;
+      return true;
     }
+    return false;
+  }
 
+  async findVerifiedUser(fromAddress: string): Promise<string | null> {
     const usersRelatedToAddress = await FirebaseInstance.getManyDocumentsByParam<IUser>(
       'users',
       'roninWallet.value',
       fromAddress,
     );
 
-    /* Guarantee that only one user can have a specific verified wallet address */
     const userRelated = usersRelatedToAddress.documents.filter((user) => user.docData.roninWallet.verified);
-    let verifiedWalletOwnerId = userRelated.length > 0 ? userRelated[0].docId : null;
+    return userRelated.length > 0 ? userRelated[0].docId : null;
+  }
 
-    /* Iterar sobre usuarios com a wallet e o que a amount bater, ele verifica! */
-    const checkForWalletVerification = await BalanceUpdateService.checkForWalletVerification({
+  async checkWalletVerification(symbol: string, value: number, fromAddress: string) {
+    const check = await BalanceUpdateService.checkForWalletVerification({
       symbol,
       transactionValue: value,
       fromAddress: fromAddress,
     });
 
-    if (checkForWalletVerification.wasAVerification && checkForWalletVerification.userIdRelatedToVerifiedAddress) {
-      verifiedWalletOwnerId = checkForWalletVerification.userIdRelatedToVerifiedAddress;
+    return check;
+  }
 
-      return await BalanceUpdateService.addToQueue<IDepositEnv>({
-        userId: verifiedWalletOwnerId,
-        type: 'walletVerification',
-        env: {
-          transactionInfo: {
-            createdAt: nowTime,
-            symbol,
-            type: 'deposit',
-            value,
-            fromAddress,
-          },
-        },
-      });
-    }
-
-    if (!verifiedWalletOwnerId) {
-      return await FirebaseInstance.writeDocument<IDepositTransactionsInDb>('transactions', {
-        createdAt: nowTime,
-        symbol,
-        value,
-        userRef: null,
-        type: 'deposit',
-        fromAddress,
-      });
-    }
-
-    /* FIX THIS */
-    if (payload.event.activities.length > 1) {
-      return await FirebaseInstance.writeDocument('differentActivities', { payload });
-    }
-
+  async addToQueueForWalletVerification({
+    fromAddress,
+    nowTime,
+    symbol,
+    userId,
+    value,
+    request,
+  }: {
+    userId: string;
+    nowTime: number;
+    symbol: string;
+    value: number;
+    fromAddress: string;
+    request: string;
+  }) {
     return await BalanceUpdateService.addToQueue<IDepositEnv>({
-      userId: verifiedWalletOwnerId,
+      userId,
+      type: 'walletVerification',
+      env: {
+        transactionInfo: {
+          createdAt: nowTime,
+          symbol,
+          type: 'deposit',
+          value,
+          fromAddress,
+        },
+        request,
+      },
+    });
+  }
+
+  async registerMissedTransaction(nowTime: number, symbol: string, value: number, fromAddress: string) {
+    return await FirebaseInstance.writeDocument<IDepositTransactionsInDb>('missedTransactions', {
+      createdAt: nowTime,
+      symbol,
+      value,
+      userRef: null,
+      type: 'deposit',
+      fromAddress,
+    });
+  }
+
+  async addToDepositQueue(userId: string, nowTime: number, symbol: string, value: number, fromAddress: string) {
+    return await BalanceUpdateService.addToQueue<IDepositEnv>({
+      userId,
       type: 'deposit',
       env: {
         transactionInfo: {
@@ -159,14 +170,54 @@ class SkyMavisWebhookService {
     });
   }
 
+  async addressActivity(payload: IAddressActivityPayload) {
+    const nowTime = Date.now();
+    const { fromAddress, value, symbol, toAddress } = payload.event.activities[0];
+
+    if (this.isTrixelsSending(toAddress)) {
+      return;
+    }
+
+    let verifiedWalletOwnerId = await this.findVerifiedUser(fromAddress);
+
+    const checkForWalletVerification = await this.checkWalletVerification(symbol, value, fromAddress);
+    if (
+      checkForWalletVerification.wasAVerification &&
+      checkForWalletVerification.userIdRelatedToVerifiedAddress &&
+      checkForWalletVerification.request
+    ) {
+      verifiedWalletOwnerId = checkForWalletVerification.userIdRelatedToVerifiedAddress;
+      return await this.addToQueueForWalletVerification({
+        userId: verifiedWalletOwnerId,
+        nowTime,
+        symbol,
+        value,
+        fromAddress,
+        request: checkForWalletVerification.request,
+      });
+    }
+
+    if (!verifiedWalletOwnerId) {
+      return await this.registerMissedTransaction(nowTime, symbol, value, fromAddress);
+    }
+
+    if (payload.event.activities.length > 1) {
+      return await this.differentActivities(payload);
+    }
+
+    return await this.addToDepositQueue(verifiedWalletOwnerId, nowTime, symbol, value, fromAddress);
+  }
+
   async receiveInfo(payload: IAddressActivityPayload | ITokenTransferPayload | IRonTransferPayload) {
     switch (payload.type) {
       case 'ADDRESS_ACTIVITY':
         await this.addressActivity(payload as IAddressActivityPayload);
         break;
       case 'RON_TRANSFER':
+        // Handle RON_TRANSFER here
         break;
       case 'TOKEN_TRANSFER':
+        // Handle TOKEN_TRANSFER here
         break;
     }
   }

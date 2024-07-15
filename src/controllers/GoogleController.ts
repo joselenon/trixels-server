@@ -54,7 +54,6 @@ class GoogleController {
       if (!state) throw new UnknownError('Invalid state.');
 
       const storedState = req.session.state;
-      console.log(storedState);
 
       console.log('state', state);
       console.log('storedState', storedState);

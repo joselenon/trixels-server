@@ -26,6 +26,7 @@ export type TDBCollections =
   | 'users'
   | 'multies'
   | 'transactions'
+  | 'missedTransactions'
   | 'bets'
   | 'raffles'
   | 'jackpots'

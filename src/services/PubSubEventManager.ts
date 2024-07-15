@@ -2,13 +2,14 @@ import { AuthError } from '../config/errors/classes/ClientErrors';
 import { TMessages, responseBody } from '../helpers/responseHelpers';
 import { PubSub } from 'graphql-subscriptions';
 
-type TPubSubEvents = 'GET_LIVE_BALANCE' | 'GET_LIVE_RAFFLES' | 'GET_LIVE_MESSAGES';
+type TPubSubEvents = 'GET_LIVE_BALANCE' | 'GET_LIVE_RAFFLES' | 'GET_LIVE_MESSAGES' | 'WALLET_VERIFICATION';
 /* type TActionKeys = 'getLiveBalance' | 'getLiveRaffles' | 'getLiveMessages'; */
 
 export const PUBSUB_EVENTS = {
   GET_LIVE_BALANCE: { private: true, triggerName: 'GET_LIVE_BALANCE', actionKey: 'getLiveBalance' },
   GET_LIVE_RAFFLES: { private: false, triggerName: 'GET_LIVE_RAFFLES', actionKey: 'getLiveRaffles' },
   GET_LIVE_MESSAGES: { private: true, triggerName: 'GET_LIVE_MESSAGES', actionKey: 'getLiveMessages' },
+  WALLET_VERIFICATION: { private: true, triggerName: 'WALLET_VERIFICATION', actionKey: 'getLiveMessages' },
 };
 
 export type TGQLResponsesTypes =

@@ -14,6 +14,7 @@ import {
   ProcessRefundError,
 } from '../config/errors/classes/BalanceUpdateServiceErrors';
 import { SystemError } from '../config/errors/classes/SystemErrors';
+import PubSubEventManager from './PubSubEventManager';
 
 export interface ISpendActionEnv {
   totalAmountBet: number;
@@ -33,6 +34,7 @@ export interface IDepositEnv {
     value: ITransactionBase['value'];
     fromAddress: string | null;
   };
+  request?: string;
 }
 
 /* Item refers to the item in the queue */
@@ -219,7 +221,7 @@ class BalanceUpdateService {
     fromAddress: string | null;
     transactionValue: number;
     symbol: unknown;
-  }): Promise<{ wasAVerification: boolean; userIdRelatedToVerifiedAddress?: string }> {
+  }): Promise<{ wasAVerification: boolean; userIdRelatedToVerifiedAddress?: string; request?: string }> {
     if (symbol !== 'PIXEL' || !fromAddress) {
       return { wasAVerification: false };
     }
@@ -238,7 +240,11 @@ class BalanceUpdateService {
       });
       if (!findExactVerification) return { wasAVerification: false };
 
-      return { wasAVerification: true, userIdRelatedToVerifiedAddress: findExactVerification.userId };
+      return {
+        wasAVerification: true,
+        userIdRelatedToVerifiedAddress: findExactVerification.userId,
+        request: findExactVerification.request,
+      };
     }
 
     return { wasAVerification: false };
@@ -279,12 +285,11 @@ class BalanceUpdateService {
 
   async processWalletVerification(item: IBalanceUpdateItemPayload<IDepositEnv>) {
     try {
-      console.log('Entrou,', item);
       await FirebaseInstance.firestore.runTransaction(async (transaction) => {
         const nowTime = Date.now();
 
         const { env, userId } = item;
-        const { transactionInfo } = env;
+        const { transactionInfo, request } = env;
         const { value } = transactionInfo;
 
         const userRefQuery = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
@@ -306,6 +311,12 @@ class BalanceUpdateService {
         transaction.update(userRef, { 'roninWallet.verified': true, 'roninWallet.verifiedAt': nowTime });
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
+        await PubSubEventManager.publishEvent('GET_LIVE_MESSAGES', {
+          success: true,
+          type: 'WALLET_VERIFICATION',
+          message: 'WALLET_VERIFICATION_SUCCESS',
+          request,
+        });
       });
     } catch (err) {
       if (err instanceof SystemError) {

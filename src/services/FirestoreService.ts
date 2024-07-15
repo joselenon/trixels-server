@@ -9,7 +9,6 @@ import {
 } from '../config/interfaces/IFirebase';
 import { DocumentNotFoundError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
 import { firebaseApp } from '..';
-import { firestore } from 'firebase-admin';
 
 export default class FirestoreService {
   public firestore: FirebaseFirestore.Firestore;

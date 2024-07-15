@@ -184,10 +184,13 @@ class UserController {
       const token = req.cookies.accessToken;
       const validatedJWT = await JWTService.validateJWT({ token });
 
+      const request = req.body.request as string;
+
+      if (!request || typeof request !== 'string') throw new InvalidPayloadError();
       if (!validatedJWT) throw new AuthError();
       const { userDoc } = validatedJWT;
 
-      const response = await UserService.verifyWallet(userDoc.docId);
+      const response = await UserService.verifyWallet(userDoc.docId, request);
 
       res.status(200).json(
         responseBody({

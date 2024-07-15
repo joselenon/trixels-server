@@ -8,6 +8,7 @@ const RESPONSE_CONFIG = {
     LOGGED_IN: "You're now logged",
     TICKET_BUY_SUCCESS: "You're now in!",
     WALLET_VERIFICATION_STARTED: 'Wallet verification started...',
+    WALLET_VERIFICATION_SUCCESS: 'Your wallet is now verified',
   },
 
   ERROR: {

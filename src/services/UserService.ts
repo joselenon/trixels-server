@@ -463,7 +463,7 @@ class UserService {
     return walletInDb.result.publicAddress;
   } */
 
-  async startWalletVerification(nowTime: number, userId: string, roninWallet: string) {
+  async startWalletVerification(nowTime: number, userId: string, roninWallet: string, request: string) {
     const walletVerificationRedisKey = getRedisKeyHelper('walletVerification');
     const allWalletVerifications =
       (await RedisInstance.get<IWalletVerificationInRedis[]>(walletVerificationRedisKey, {
@@ -482,6 +482,7 @@ class UserService {
       createdAt: nowDate,
       userId,
       roninWallet,
+      request: request,
       ...randomValueToSend,
     };
 
@@ -492,7 +493,7 @@ class UserService {
     return walletVerificationRedisPayload;
   }
 
-  async verifyWallet(userId: string): Promise<IWalletVerificationInRedis> {
+  async verifyWallet(userId: string, request: string): Promise<IWalletVerificationInRedis> {
     const nowTime = Date.now();
     const { docData } = await FirebaseInstance.getDocumentRefWithData<IUser>('users', userId);
 
@@ -511,7 +512,7 @@ class UserService {
       return findWalletVerification;
     }
 
-    return await this.startWalletVerification(nowTime, userId, roninWallet.value);
+    return await this.startWalletVerification(nowTime, userId, roninWallet.value, request);
   }
 
   async getUserCredentialsById(userId: string, userQueryingIsUserLogged: boolean) {

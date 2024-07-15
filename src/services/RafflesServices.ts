@@ -674,8 +674,6 @@ class CreateRaffle {
       });
       transaction.set(newBetRef, betInDbObj);
 
-      console.log('requesssttt', this.request);
-
       const pubSubData: IPubSubCreateRaffleData = { gameId: newRaffleId };
       PubSubEventManager.publishEvent(
         'GET_LIVE_MESSAGES',
