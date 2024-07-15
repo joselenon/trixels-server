@@ -82,6 +82,7 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
       });
     } catch (err: unknown) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessRefundError(JSON.stringify(item));
       }
@@ -154,6 +155,7 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
     } catch (err: unknown) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessCreateRaffleItemError(JSON.stringify(item));
       }
@@ -179,6 +181,7 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
     } catch (err: unknown) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessBuyRaffleTicketItemError(JSON.stringify(item));
       }
@@ -205,6 +208,7 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newBalance, sendPSubInTimestamp);
       });
     } catch (err: unknown) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessPayWinnersItemError(JSON.stringify(item));
       }
@@ -276,6 +280,7 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
       });
     } catch (err) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessDepositError(JSON.stringify(item));
       }
@@ -311,14 +316,20 @@ class BalanceUpdateService {
         transaction.update(userRef, { 'roninWallet.verified': true, 'roninWallet.verifiedAt': nowTime });
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
-        await PubSubEventManager.publishEvent('GET_LIVE_MESSAGES', {
-          success: true,
-          type: 'WALLET_VERIFICATION',
-          message: 'WALLET_VERIFICATION_SUCCESS',
-          request,
-        });
+        await PubSubEventManager.publishEvent(
+          'GET_LIVE_MESSAGES',
+          {
+            success: true,
+            type: 'WALLET_VERIFICATION',
+            message: 'WALLET_VERIFICATION_SUCCESS',
+            request,
+            data: '',
+          },
+          userId,
+        );
       });
     } catch (err) {
+      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessDepositError(JSON.stringify(item));
       }

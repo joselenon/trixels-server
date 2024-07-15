@@ -13,7 +13,7 @@ class WebHooksController {
 
       await SkyMavisWebhookService.receiveInfo(payload);
 
-      res.status(200).json(responseBody({ success: true, type: 'GET_USER_INFO', message: 'GENERIC_MSG', data: null }));
+      res.status(200).json(responseBody({ success: true, type: 'WEBHOOK_RECEIVED', message: 'GET_MSG', data: null }));
     } catch (err) {
       next(err);
     }

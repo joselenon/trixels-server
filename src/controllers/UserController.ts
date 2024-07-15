@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import { AuthError } from '../config/errors/classes/ClientErrors';
-import UserService from '../services/UserService';
+import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
 import CookiesConfig from '../config/app/CookiesConfig';
@@ -161,10 +161,16 @@ class UserController {
       if (!validatedJWT) throw new AuthError();
       const { userDoc } = validatedJWT;
 
-      const { email, roninWallet } = req.body;
+      const payload = req.body as { email: string; roninWallet: string };
+      const { email, roninWallet } = payload;
       if (typeof email !== 'string' && typeof roninWallet !== 'string') throw new InvalidPayloadError();
 
-      const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, req.body);
+      const filteredPayload: IUpdateUserCredentialsPayload = {
+        email: payload.email.toLowerCase(),
+        roninWallet: payload.roninWallet.toLowerCase(),
+      };
+
+      const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, filteredPayload);
 
       res.status(200).json(
         responseBody({

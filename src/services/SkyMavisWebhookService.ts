@@ -83,8 +83,8 @@ class SkyMavisWebhookService {
     await FirebaseInstance.writeDocument('differentActivities', { payload });
   }
 
-  isTrixelsSending(toAddress: string) {
-    if (toAddress !== TRIXELS_WALLET_ADDRESS) {
+  isTrixelsSending(fromAddress: string, toAddress: string) {
+    if (fromAddress === TRIXELS_WALLET_ADDRESS && toAddress !== TRIXELS_WALLET_ADDRESS) {
       console.log('Sending tokens...');
       return true;
     }
@@ -100,16 +100,6 @@ class SkyMavisWebhookService {
 
     const userRelated = usersRelatedToAddress.documents.filter((user) => user.docData.roninWallet.verified);
     return userRelated.length > 0 ? userRelated[0].docId : null;
-  }
-
-  async checkWalletVerification(symbol: string, value: number, fromAddress: string) {
-    const check = await BalanceUpdateService.checkForWalletVerification({
-      symbol,
-      transactionValue: value,
-      fromAddress: fromAddress,
-    });
-
-    return check;
   }
 
   async addToQueueForWalletVerification({
@@ -174,13 +164,20 @@ class SkyMavisWebhookService {
     const nowTime = Date.now();
     const { fromAddress, value, symbol, toAddress } = payload.event.activities[0];
 
-    if (this.isTrixelsSending(toAddress)) {
+    if (this.isTrixelsSending(fromAddress, toAddress)) {
       return;
     }
 
     let verifiedWalletOwnerId = await this.findVerifiedUser(fromAddress);
+    console.log('verifiedWalletOwnerId', verifiedWalletOwnerId);
 
-    const checkForWalletVerification = await this.checkWalletVerification(symbol, value, fromAddress);
+    const checkForWalletVerification = await BalanceUpdateService.checkForWalletVerification({
+      symbol,
+      transactionValue: value,
+      fromAddress,
+    });
+
+    console.log('checkForWalletVerification', checkForWalletVerification);
     if (
       checkForWalletVerification.wasAVerification &&
       checkForWalletVerification.userIdRelatedToVerifiedAddress &&
@@ -208,10 +205,26 @@ class SkyMavisWebhookService {
     return await this.addToDepositQueue(verifiedWalletOwnerId, nowTime, symbol, value, fromAddress);
   }
 
+  filterAddressActivityPayload(payload: IAddressActivityPayload): IAddressActivityPayload {
+    return {
+      ...payload,
+      event: {
+        ...payload.event,
+        activities: payload.event.activities.map((activity) => {
+          return {
+            ...activity,
+            fromAddress: activity.fromAddress.toLowerCase(),
+            toAddress: activity.toAddress.toLowerCase(),
+          };
+        }),
+      },
+    };
+  }
+
   async receiveInfo(payload: IAddressActivityPayload | ITokenTransferPayload | IRonTransferPayload) {
     switch (payload.type) {
       case 'ADDRESS_ACTIVITY':
-        await this.addressActivity(payload as IAddressActivityPayload);
+        await this.addressActivity(this.filterAddressActivityPayload(payload) as IAddressActivityPayload);
         break;
       case 'RON_TRANSFER':
         // Handle RON_TRANSFER here

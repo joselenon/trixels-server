@@ -43,7 +43,7 @@ const RESPONSE_CONFIG = {
     },
 
     CLIENT_ERROR_MSGS: {
-      GENERIC_MSG: `Something went wrong. We're fixing it!`,
+      GENERIC_ERROR_MSG: `Something went wrong. We're fixing it!`,
       AUTH_MSG: 'Unauthorized',
       INVALID_USERNAME: 'Username or password invalid',
       INVALID_PASSWORD: 'Username or password invalid',

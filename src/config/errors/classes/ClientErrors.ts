@@ -19,7 +19,7 @@ export abstract class ClientError extends Error {
 }
 
 export class GenericError extends ClientError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_MSG) {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_ERROR_MSG) {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.Generic, 404);
   }
 }

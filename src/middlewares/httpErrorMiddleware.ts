@@ -14,7 +14,7 @@ const httpErrorMiddleware = (err: Error, req: Request, res: Response, next: Next
   }
 
   // In case error is not instance of ClientError (displayable ones), throw a generic one
-  res.status(403).json(errorResponse(RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_MSG));
+  res.status(403).json(errorResponse(RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_ERROR_MSG));
   return next();
 };
 

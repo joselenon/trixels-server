@@ -17,7 +17,7 @@ export default function (err: GraphQLFormattedError) {
   }
 
   return {
-    message: RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_MSG,
+    message: RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.GENERIC_ERROR_MSG,
     extensions: {
       code: 'UnexpectedError',
     },
