@@ -466,6 +466,10 @@ class UserService {
 
   async startWalletVerification(nowTime: number, userId: string, roninWallet: string) {
     const walletVerificationRedisKey = getRedisKeyHelper('walletVerification');
+    const allWalletVerifications =
+      (await RedisInstance.get<IWalletVerificationInRedis[]>(walletVerificationRedisKey, {
+        isJSON: true,
+      })) || [];
 
     const nowDate = Date.now();
     function getRandomNumber() {
@@ -479,16 +483,12 @@ class UserService {
       createdAt: nowDate,
       userId,
       roninWallet,
-      expiresAt: nowTime + WALLET_VERIFICATION_EXPIRATION_IN_SECONDS * 1000,
       ...randomValueToSend,
     };
 
-    await RedisInstance.set(
-      walletVerificationRedisKey,
-      walletVerificationRedisPayload,
-      { isJSON: true },
-      WALLET_VERIFICATION_EXPIRATION_IN_SECONDS,
-    );
+    const updatedWalletVerification = [...allWalletVerifications, walletVerificationRedisPayload];
+
+    await RedisInstance.set(walletVerificationRedisKey, updatedWalletVerification, { isJSON: true });
 
     return walletVerificationRedisPayload;
   }
@@ -501,13 +501,15 @@ class UserService {
     if (!roninWallet.value) throw new WalletVerificationError();
     if (roninWallet.verified) throw new WalletAlreadyVerifiedError();
 
-    const walletVerificationRedisKey = getRedisKeyHelper('walletVerification', roninWallet.value);
-    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(walletVerificationRedisKey, {
-      isJSON: true,
-    });
+    const walletVerificationRedisKey = getRedisKeyHelper('walletVerification');
+    const walletVerificationInRedis =
+      (await RedisInstance.get<IWalletVerificationInRedis[]>(walletVerificationRedisKey, {
+        isJSON: true,
+      })) || [];
 
-    if (walletVerificationInRedis && walletVerificationInRedis.roninWallet === roninWallet.value) {
-      return walletVerificationInRedis;
+    const findWalletVerification = walletVerificationInRedis.find((wv) => wv.userId === userId);
+    if (findWalletVerification && findWalletVerification.roninWallet === roninWallet.value) {
+      return findWalletVerification;
     }
 
     return await this.startWalletVerification(nowTime, userId, roninWallet.value);

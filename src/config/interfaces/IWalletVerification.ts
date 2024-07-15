@@ -3,5 +3,4 @@ export interface IWalletVerificationInRedis {
   userId: string;
   roninWallet: string;
   randomValue: number;
-  expiresAt: number;
 }
