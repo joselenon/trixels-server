@@ -271,6 +271,7 @@ class BalanceUpdateService {
 
   async processWalletVerification(item: IBalanceUpdateItemPayload<IDepositEnv>) {
     try {
+      console.log('Entrou,', item);
       await FirebaseInstance.firestore.runTransaction(async (transaction) => {
         const nowTime = Date.now();
 

@@ -108,6 +108,7 @@ class SkyMavisWebhookService {
       transactionValue: value,
       fromAddress: fromAddress,
     });
+    console.log('Verifying, ', payload);
     if (checkForWalletVerification.wasAVerification && checkForWalletVerification.userIdRelatedToVerifiedAddress) {
       verifiedWalletOwnerId = checkForWalletVerification.userIdRelatedToVerifiedAddress;
 

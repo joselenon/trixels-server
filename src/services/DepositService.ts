@@ -27,8 +27,8 @@ export interface IGetDepositWalletPayload {
 class DepositService {
   /*   async getDepositMethods(): Promise<IDepositMethods> {
     return {
-      RON: { networks: [{ description: 'Ronin', walletAddress: 'TRIXELS.XYZ', minimumAmount: 10 }] },
-      PIXEL: { networks: [{ description: 'Ronin', walletAddress: 'TRIXELS.XYZ', minimumAmount: 10 }] },
+      RON: { networks: [{ description: 'Ronin', walletAddress: 'TRIXELS.RON', minimumAmount: 10 }] },
+      PIXEL: { networks: [{ description: 'Ronin', walletAddress: 'TRIXELS.RON', minimumAmount: 10 }] },
     };
   } */
 
@@ -52,7 +52,7 @@ class DepositService {
     }
     */
 
-    return { walletAddress: 'TRIXELS.XYZ', minimumDeposit: 5 };
+    return { walletAddress: 'TRIXELS.RON', minimumDeposit: 5 };
   }
 
   /* REVISAR */
