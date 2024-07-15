@@ -226,12 +226,16 @@ class BalanceUpdateService {
 
     const redisKey = getRedisKeyHelper('walletVerification', fromAddress);
     const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
+    console.log('walletVerificationInRedis', walletVerificationInRedis);
 
     if (walletVerificationInRedis) {
       const { randomValue, userId } = walletVerificationInRedis;
 
       const roundedTransactionValue = parseFloat(transactionValue.toFixed(6));
       const roundedRandomValue = parseFloat(randomValue.toFixed(6));
+
+      console.log('roundedRandomValue', roundedRandomValue);
+      console.log('roundedTransactionValue', roundedTransactionValue);
 
       if (roundedTransactionValue === roundedRandomValue) {
         return { wasAVerification: true, userIdRelatedToVerifiedAddress: userId };

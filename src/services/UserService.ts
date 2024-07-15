@@ -15,7 +15,6 @@ import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
 import encryptString from '../common/encryptString';
 import validateEncryptedString from '../common/validateEncryptedString';
 import getRedisKeyHelper from '../helpers/redisHelper';
-import { WALLET_VERIFICATION_EXPIRATION_IN_SECONDS } from '../config/app/System';
 import { IWalletVerificationInRedis } from '../config/interfaces/IWalletVerification';
 import AxiosService from './AxiosService';
 import { IFirebaseResponse } from '../config/interfaces/IFirebase';

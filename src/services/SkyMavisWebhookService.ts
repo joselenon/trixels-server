@@ -81,6 +81,7 @@ interface IRonTransferPayload extends WebhookPayload {
 class SkyMavisWebhookService {
   /* REVIEW AND REFACTOR */
   async addressActivity(payload: IAddressActivityPayload) {
+    console.log('payloaddd', payload);
     const nowTime = Date.now();
 
     /* FIX THIS ([0] is wrong) */
