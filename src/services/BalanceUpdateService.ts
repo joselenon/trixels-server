@@ -225,21 +225,20 @@ class BalanceUpdateService {
     }
 
     const redisKey = getRedisKeyHelper('walletVerification');
-    const walletVerificationInRedis = await RedisInstance.get<IWalletVerificationInRedis>(redisKey, { isJSON: true });
-    console.log('walletVerificationInRedis', walletVerificationInRedis);
+    const walletVerificationsInRedis = await RedisInstance.get<IWalletVerificationInRedis[]>(redisKey, {
+      isJSON: true,
+    });
 
-    if (walletVerificationInRedis) {
-      const { randomValue, userId } = walletVerificationInRedis;
+    if (walletVerificationsInRedis) {
+      const findExactVerification = walletVerificationsInRedis.find((wvs) => {
+        const roundedTransactionValue = parseFloat(transactionValue.toFixed(6));
+        const roundedRandomValue = parseFloat(wvs.randomValue.toFixed(6));
 
-      const roundedTransactionValue = parseFloat(transactionValue.toFixed(6));
-      const roundedRandomValue = parseFloat(randomValue.toFixed(6));
+        return wvs.roninWallet === fromAddress && roundedTransactionValue === roundedRandomValue;
+      });
+      if (!findExactVerification) return { wasAVerification: false };
 
-      console.log('roundedRandomValue', roundedRandomValue);
-      console.log('roundedTransactionValue', roundedTransactionValue);
-
-      if (roundedTransactionValue === roundedRandomValue) {
-        return { wasAVerification: true, userIdRelatedToVerifiedAddress: userId };
-      }
+      return { wasAVerification: true, userIdRelatedToVerifiedAddress: findExactVerification.userId };
     }
 
     return { wasAVerification: false };
