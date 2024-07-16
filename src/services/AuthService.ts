@@ -1,12 +1,27 @@
 import { v4 } from 'uuid';
 import getRedisKeyHelper from '../helpers/redisHelper';
 import { IRefreshTokenRedisPayload } from '../config/interfaces/IRedis';
-import { RedisInstance } from '..';
+import { FirebaseInstance, RedisInstance } from '..';
 import TokensConfig from '../config/app/TokensConfig';
 import JWTService from './JWTService';
 import { AuthError, JWTExpiredError } from '../config/errors/classes/ClientErrors';
 import UserService from './UserService';
-import { BlacklistedTokenError, SuspiciousAuthError } from '../config/errors/classes/SystemErrors';
+import {
+  BlacklistedTokenError,
+  GoogleOAuthSystemError,
+  SuspiciousAuthError,
+  UnexpectedDatabaseError,
+  UnknownError,
+} from '../config/errors/classes/SystemErrors';
+import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
+import AxiosService from './AxiosService';
+
+interface IGoogleApisUserInfo {
+  sub: string;
+  name: string;
+  picture: string;
+  email: string;
+}
 
 class AuthService {
   async genAccessToken(refreshToken: string, userId: string) {
@@ -106,6 +121,111 @@ class AuthService {
     );
 
     return { refreshToken, accessToken: bearerToken };
+  }
+
+  /* Juntar formação de payload do usuário em uma lógica só!! (updateUserCredentials) */
+  async registerUserThroughGoogle({
+    googlePersonalName,
+    avatar,
+    emailValue,
+    googleSub,
+  }: {
+    googlePersonalName: string;
+    avatar: string;
+    emailValue: string;
+    googleSub: string;
+  }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
+    try {
+      const usernameThroughEmailValue = emailValue.split('@')[0];
+      let customFilteredUsername = UserService.filterCustomUsername(usernameThroughEmailValue);
+
+      if (!UserService.isUsernameValid(customFilteredUsername)) {
+        customFilteredUsername = UserService.filterCustomUsername(customFilteredUsername);
+      }
+
+      const userExists = await UserService.checkIfUsernameExists(customFilteredUsername);
+      if (userExists) customFilteredUsername = await UserService.makeUsernameUnique(customFilteredUsername);
+
+      const nowTime = Date.now();
+
+      const userInDbObj: IUser = {
+        username: customFilteredUsername,
+        password: null,
+        avatar,
+        balance: 0,
+        email: {
+          value: emailValue,
+          verified: true,
+          lastEmail: '',
+          updatedAt: nowTime,
+          googleSub,
+          googlePersonalName,
+        },
+        roninWallet: {
+          value: '',
+          lastWallet: '',
+          verified: false,
+          updatedAt: nowTime,
+        },
+        createdAt: nowTime,
+      };
+
+      const { docId } = await FirebaseInstance.writeDocument('users', userInDbObj);
+      return { userCredentials: userInDbObj, userCreatedId: docId };
+    } catch (err: any) {
+      throw new UnexpectedDatabaseError(err);
+    }
+  }
+
+  async loginUserThroughGoogle(accessToken: string): Promise<{
+    userCredentials: IUserToFrontEnd;
+    userDocId: string;
+  }> {
+    const googleAuthResponse = await AxiosService<IGoogleApisUserInfo>({
+      url: `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`,
+      method: 'get',
+    });
+    if (!googleAuthResponse.data) throw new GoogleOAuthSystemError();
+
+    const {
+      email: googleEmail,
+      name: googlePersonalName,
+      picture: googleAvatar,
+      sub: googleSub,
+    } = googleAuthResponse.data;
+
+    /* Using googleSub as parameter to query cause email is changeble, while googleSub never changes */
+    const usersRelatedToEmail = await FirebaseInstance.getManyDocumentsByParam<IUser>(
+      'users',
+      'email.googleSub',
+      googleSub,
+    );
+
+    /* If there's no user with the email yet, start an account creation */
+    if (usersRelatedToEmail.documents.length <= 0) {
+      const { userCredentials, userCreatedId } = await this.registerUserThroughGoogle({
+        googlePersonalName,
+        emailValue: googleEmail,
+        avatar: googleAvatar,
+        googleSub,
+      });
+
+      return { userCredentials, userDocId: userCreatedId };
+    }
+
+    if (usersRelatedToEmail.documents.length > 1) throw new UnknownError('More than 1 user with same verified email.');
+    const userRelatedToVerifiedEmail = usersRelatedToEmail.documents[0];
+
+    const userDocId = userRelatedToVerifiedEmail.docId;
+    const userDocData = userRelatedToVerifiedEmail.docData;
+
+    return {
+      userCredentials: UserService.filterUserInfoToFrontEnd({
+        userInfo: userDocData,
+        userQueryingIsUserLogged: true,
+      }),
+      userDocId,
+    };
   }
 }
 

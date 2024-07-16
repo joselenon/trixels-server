@@ -11,6 +11,7 @@ export interface IUser {
     updatedAt: number;
     verified: boolean;
     verifiedAt?: number;
+    googlePersonalName?: string;
     googleSub: string | null /* Unique id to identify an user despite an email change */;
   };
   roninWallet: {

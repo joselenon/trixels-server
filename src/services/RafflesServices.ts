@@ -8,7 +8,12 @@ import {
   InsufficientBalanceError,
   TicketBuyLimitReached,
 } from '../config/errors/classes/ClientErrors';
-import { InvalidPayloadError, RaffleLostError, UnknownError } from '../config/errors/classes/SystemErrors';
+import {
+  CreateRaffleUnexpectedError,
+  InvalidPayloadError,
+  RaffleLostError,
+  UnknownError,
+} from '../config/errors/classes/SystemErrors';
 import {
   IBetInDB,
   IBetToFrontEnd,
@@ -615,8 +620,6 @@ class CreateRaffle {
   }
 
   async create(): Promise<void> {
-    const nowTime = Date.now();
-
     const payload: IRaffleCreationPayload = {
       discountPercentage: this.discountPercentage,
       privacy: this.privacy,
@@ -627,87 +630,94 @@ class CreateRaffle {
       maxTicketsPerUser: this.maxTicketsPerUser,
     };
 
-    const { privacy, totalTickets, description, maxTicketsPerUser } = payload;
+    try {
+      const nowTime = Date.now();
 
-    const raffleCalcs = RaffleUtils.getRaffleDetails(payload);
-    const { raffleOwnerCost, winnersPrizesObj, prizesTotalValue, ticketPrice } = raffleCalcs;
+      const { privacy, totalTickets, description, maxTicketsPerUser } = payload;
 
-    const roundedTicketPrice = formatIrrationalCryptoAmount(ticketPrice);
+      const raffleCalcs = RaffleUtils.getRaffleDetails(payload);
+      const { raffleOwnerCost, winnersPrizesObj, prizesTotalValue, ticketPrice } = raffleCalcs;
 
-    const raffleObjToDb: IRaffleInDb = {
-      createdAt: nowTime,
-      createdBy: this.userDoc.docRef,
-      updatedAt: nowTime,
-      type: 'raffles',
-      status: 'active',
-      description,
-      info: {
-        bets: [],
-        ticketPrice: roundedTicketPrice,
-        totalTickets,
-        ticketsBought: 0,
-        prizesTotalValue,
-        privacy,
-        prizes: winnersPrizesObj,
-        maxTicketsPerUser,
-      },
-    };
+      const roundedTicketPrice = formatIrrationalCryptoAmount(ticketPrice);
 
-    /* Ver se não seria uma boa passar o userDoc inteiro ao inves de somente o ID (mais tarde) REVIEW */
-    const authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
-      userId: this.userDoc.docId,
-      type: 'createRaffle',
-      env: {
-        totalAmountBet: raffleOwnerCost,
-        pubSubConfig: { userId: this.userDoc.docId, reqType: 'CREATE_RAFFLE', request: this.request },
-      },
-    });
-    if (authorization && !authorization.authorized) {
-      return;
-    }
-
-    let newRaffleId = '';
-
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      /* Checar se é necessario fazer outra requisição do usuário */
-      const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', this.userDoc.docId);
-
-      const rafflesCollectionRef = await FirebaseInstance.getCollectionRef('raffles');
-      const newRaffleRef = rafflesCollectionRef.doc();
-      newRaffleId = newRaffleRef.id;
-
-      const betsCollectionRef = await FirebaseInstance.getCollectionRef('bets');
-      const newBetRef = betsCollectionRef.doc();
-
-      const raffleToFrontEndObj: IRaffleToFrontEnd = await RaffleUtils.filterRaffleToFrontEnd(
-        newRaffleId,
-        raffleObjToDb,
-      );
-      await RaffleUtils.updateSpecificRaffleInRedis(newRaffleId, raffleToFrontEndObj, 'active');
-
-      transaction.set(newRaffleRef, raffleObjToDb);
-
-      const betInDbObj = await BetsService.makeBetObjToDb({
-        userRef,
-        gameRef: newRaffleRef,
-        gameType: 'raffles',
-        amountBet: raffleOwnerCost,
-      });
-      transaction.set(newBetRef, betInDbObj);
-
-      const pubSubData: IPubSubCreateRaffleData = { gameId: newRaffleId };
-      PubSubEventManager.publishEvent(
-        'GET_LIVE_MESSAGES',
-        {
-          success: true,
-          message: 'RAFFLE_CREATION_SUCCESS',
-          type: 'CREATE_RAFFLE',
-          data: JSON.stringify(pubSubData),
-          request: this.request,
+      const raffleObjToDb: IRaffleInDb = {
+        createdAt: nowTime,
+        createdBy: this.userDoc.docRef,
+        updatedAt: nowTime,
+        type: 'raffles',
+        status: 'active',
+        description,
+        info: {
+          bets: [],
+          ticketPrice: roundedTicketPrice,
+          totalTickets,
+          ticketsBought: 0,
+          prizesTotalValue,
+          privacy,
+          prizes: winnersPrizesObj,
+          maxTicketsPerUser,
         },
-        this.userDoc.docId,
-      );
-    });
+      };
+
+      /* Ver se não seria uma boa passar o userDoc inteiro ao inves de somente o ID (mais tarde) REVIEW */
+      const authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
+        userId: this.userDoc.docId,
+        type: 'createRaffle',
+        env: {
+          totalAmountBet: raffleOwnerCost,
+          pubSubConfig: { userId: this.userDoc.docId, reqType: 'CREATE_RAFFLE', request: this.request },
+        },
+      });
+      if (authorization && !authorization.authorized) {
+        return;
+      }
+
+      let newRaffleId = '';
+
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        /* Checar se é necessario fazer outra requisição do usuário */
+        const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', this.userDoc.docId);
+
+        const rafflesCollectionRef = await FirebaseInstance.getCollectionRef('raffles');
+        const newRaffleRef = rafflesCollectionRef.doc();
+        newRaffleId = newRaffleRef.id;
+
+        const betsCollectionRef = await FirebaseInstance.getCollectionRef('bets');
+        const newBetRef = betsCollectionRef.doc();
+
+        transaction.set(newRaffleRef, raffleObjToDb);
+
+        const betInDbObj = await BetsService.makeBetObjToDb({
+          userRef,
+          gameRef: newRaffleRef,
+          gameType: 'raffles',
+          amountBet: raffleOwnerCost,
+        });
+        transaction.set(newBetRef, betInDbObj);
+
+        const pubSubData: IPubSubCreateRaffleData = { gameId: newRaffleId };
+
+        const raffleToFrontEndObj: IRaffleToFrontEnd = await RaffleUtils.filterRaffleToFrontEnd(
+          newRaffleId,
+          raffleObjToDb,
+        );
+
+        await RaffleUtils.updateSpecificRaffleInRedis(newRaffleId, raffleToFrontEndObj, 'active');
+        PubSubEventManager.publishEvent(
+          'GET_LIVE_MESSAGES',
+          {
+            success: true,
+            message: 'RAFFLE_CREATION_SUCCESS',
+            type: 'CREATE_RAFFLE',
+            data: JSON.stringify(pubSubData),
+            request: this.request,
+          },
+          this.userDoc.docId,
+        );
+      });
+    } catch (err) {
+      throw new CreateRaffleUnexpectedError(JSON.stringify(payload));
+    }
   }
 }
 

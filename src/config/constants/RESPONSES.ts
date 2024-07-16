@@ -36,6 +36,7 @@ const RESPONSE_CONFIG = {
       UNAVAILABLE_AUTH_METHOD: 'Unavailable auth method',
       FORGED_WEBHOOK: 'Webhook forged',
       RAFFLE_LOST: 'System lost a specific raffle',
+      CREATE_RAFFLE: 'Something went wrong creating a raffle',
       INVALID_JWT: 'INVALID_JWT',
       GOOGLE_OAUTH_SYSTEM: 'Something went wrong with GoogleOAuthSystem',
       SUSPICIOUS_AUTH: 'Something suspicious with user authentication',

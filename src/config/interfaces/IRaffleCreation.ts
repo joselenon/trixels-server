@@ -18,5 +18,5 @@ export interface IRaffleCreationPayload {
   };
   prizes: TRaffleCreationPrizesWinners;
   request: string;
-  maxTicketsPerUser?: number;
+  maxTicketsPerUser: number | null;
 }

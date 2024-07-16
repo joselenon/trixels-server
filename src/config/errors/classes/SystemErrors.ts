@@ -88,6 +88,13 @@ export class ForgedWebhookError extends SystemError {
   }
 }
 
+export class CreateRaffleUnexpectedError extends SystemError {
+  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.CREATE_RAFFLE) {
+    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.TYPES.Game);
+    this.name = 'CreateRaffleUnexpectedError';
+  }
+}
+
 export class RaffleLostError extends SystemError {
   constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.RAFFLE_LOST) {
     super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.TYPES.Unknown);

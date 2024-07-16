@@ -4,7 +4,6 @@ import { OAuth2Client } from 'google-auth-library';
 import ENVIRONMENT from '../config/constants/ENVIRONMENT';
 import URLS, { API_URL, CLIENT_FULL_URL } from '../config/constants/URLS';
 import { GoogleOAuthSystemError, InvalidPayloadError, UnknownError } from '../config/errors/classes/SystemErrors';
-import UserService from '../services/UserService';
 import CookiesConfig from '../config/app/CookiesConfig';
 import AuthService from '../services/AuthService';
 
@@ -77,7 +76,7 @@ class GoogleController {
       const oAuthUserCredential = oAuth2Client.credentials;
       if (!oAuthUserCredential || !oAuthUserCredential.access_token) throw new GoogleOAuthSystemError();
 
-      const { userCredentials, userDocId } = await UserService.loginUserThroughGoogle(oAuthUserCredential.access_token);
+      const { userCredentials, userDocId } = await AuthService.loginUserThroughGoogle(oAuthUserCredential.access_token);
 
       const { accessToken, refreshToken } = await AuthService.genAuthTokens({
         userId: userDocId,
