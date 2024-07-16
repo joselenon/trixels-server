@@ -459,10 +459,13 @@ class RaffleUtils {
       });
       const { ticketsBought, totalTickets, ticketPrice, bets, maxTicketsPerUser } = raffleInRedis.info;
 
-      const userBets = bets.filter((bet) => bet.userRef.userId === userId);
+      const allUserTickets = bets
+        .filter((bet) => bet.userRef.userId === userId)
+        .reduce((acc, bet) => acc + bet.info.tickets.length, 0);
+
       if (
         maxTicketsPerUser &&
-        (userBets.length === maxTicketsPerUser || userBets.length + ticketNumbers.length > maxTicketsPerUser)
+        (allUserTickets === maxTicketsPerUser || allUserTickets + ticketNumbers.length > maxTicketsPerUser)
       ) {
         throw new TicketBuyLimitReached({ reqType: 'BUY_RAFFLE_TICKET', userId });
       }
