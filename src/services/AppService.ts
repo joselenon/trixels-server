@@ -72,6 +72,7 @@ class AppService {
     this.app.use(corsMiddleware());
     this.app.use(expressJSONMiddleware());
     this.app.use(expressURLEncodedMiddleware());
+    this.app.use(sessionsMiddleware());
 
     /* SENTRY */
     this.app.use(requestHandlerMiddleware());
@@ -80,7 +81,6 @@ class AppService {
 
   private setupEndpoints(): void {
     this.app.use(graphQLRouter(this.apolloServer));
-    this.app.use(sessionsMiddleware());
     this.app.use(API_BASE, routes);
     this.app.use(errorHandlerMiddleware()); // Final SENTRY middleware
   }
