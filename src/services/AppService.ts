@@ -73,6 +73,7 @@ class AppService {
     this.app.use(expressJSONMiddleware());
     this.app.use(expressURLEncodedMiddleware());
     this.app.use(sessionsMiddleware());
+    this.app.set('trust proxy', 1);
 
     /* SENTRY */
     this.app.use(requestHandlerMiddleware());
