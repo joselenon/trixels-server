@@ -12,9 +12,6 @@ class GoogleController {
     try {
       const state = req.body.stateAuth;
       if (!state) throw new UnknownError('Invalid state.');
-      req.session.state = state;
-
-      console.log(state);
 
       /* Requisições do client */
       res.header('Access-Control-Allow-Origin', CLIENT_FULL_URL);
@@ -36,6 +33,7 @@ class GoogleController {
         state,
       });
 
+      res.cookie('googleAuthState', state, CookiesConfig.JWTCookie.config);
       res
         .status(200)
         .json(responseBody({ success: true, type: 'LOG_USER', message: 'GET_MSG', data: { authorizeUrl } }));
@@ -52,12 +50,9 @@ class GoogleController {
       if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
       if (!state) throw new UnknownError('Invalid state.');
 
-      const storedState = req.session.state;
-
-      console.log('state', state);
-      console.log('storedState', storedState);
-
-      if (state !== storedState) {
+      const googleAuthState = req.cookies.googleAuthState;
+      console.log('googleAuthState', googleAuthState);
+      if (state !== googleAuthState) {
         throw new UnknownError('State does not match. Possible CSRF attack.');
       }
 

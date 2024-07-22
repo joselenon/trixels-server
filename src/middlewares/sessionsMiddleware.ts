@@ -16,9 +16,5 @@ export default function sessionsMiddleware() {
       domain: `.${ENVIRONMENT.DOMAIN}`,
       httpOnly: true,
     },
-    genid: (req) => {
-      console.log('SESSIONS HERE:', req.session);
-      return req.sessionID || (1e8 * Math.random()).toString(36);
-    },
   });
 }
