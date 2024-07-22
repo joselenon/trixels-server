@@ -44,23 +44,23 @@ class GoogleController {
     }
   }
 
-  async callbackSignIn(req: Request, res: Response, next: NextFunction) {
+  async callbackSignIn(req: Request, res: Response /* , next: NextFunction */) {
+    const code = req.query.code as string;
+    const state = req.query.state as string;
+
+    if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
+    if (!state) throw new UnknownError('Invalid state.');
+
+    const storedState = req.session.state;
+
+    console.log('state', state);
+    console.log('storedState', storedState);
+
+    if (state !== storedState) {
+      throw new UnknownError('State does not match. Possible CSRF attack.');
+    }
+
     try {
-      const code = req.query.code as string;
-      const state = req.query.state as string;
-
-      if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
-      if (!state) throw new UnknownError('Invalid state.');
-
-      const storedState = req.session.state;
-
-      console.log('state', state);
-      console.log('storedState', storedState);
-
-      if (state !== storedState) {
-        throw new UnknownError('State does not match. Possible CSRF attack.');
-      }
-
       const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
       const oAuth2Client = new OAuth2Client(
@@ -83,14 +83,15 @@ class GoogleController {
         username: userCredentials.username,
       });
 
-      const dataToJSON = JSON.stringify({ userCredentials, state, accessToken, refreshToken });
+      // const dataToJSON = JSON.stringify({ userCredentials, state, accessToken, refreshToken });
+      const dataToJSON = JSON.stringify({ success: true, data: { userCredentials, state, accessToken, refreshToken } });
 
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
       res.redirect(`${CLIENT_FULL_URL}/googleauth?data=${encodeURIComponent(dataToJSON)}`);
     } catch (err) {
-      res.redirect(`${CLIENT_FULL_URL}/googleauth`);
-      next(err);
+      const dataToJSON = JSON.stringify({ success: false, data: null });
+      res.redirect(`${CLIENT_FULL_URL}/googleauth?data=${encodeURIComponent(dataToJSON)}`);
     }
   }
 }
