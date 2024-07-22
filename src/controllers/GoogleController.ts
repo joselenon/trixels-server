@@ -89,6 +89,7 @@ class GoogleController {
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
       res.redirect(`${CLIENT_FULL_URL}/googleauth?data=${encodeURIComponent(dataToJSON)}`);
     } catch (err) {
+      res.redirect(`${CLIENT_FULL_URL}/googleauth`);
       next(err);
     }
   }

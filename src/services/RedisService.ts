@@ -6,7 +6,7 @@ import { TRedisCommands, TRedisKeys, TRedisOptions } from '../config/interfaces/
 import { RedisError } from '../config/errors/classes/SystemErrors';
 
 export default class RedisService {
-  private client: Redis;
+  public client: Redis;
 
   constructor(host: string, port: number, password: string = '') {
     this.client = new Redis({
