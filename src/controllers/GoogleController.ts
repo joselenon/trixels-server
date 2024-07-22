@@ -33,7 +33,6 @@ class GoogleController {
         state,
       });
 
-      res.cookie('googleAuthState', state, CookiesConfig.JWTCookie.config);
       res
         .status(200)
         .json(responseBody({ success: true, type: 'LOG_USER', message: 'GET_MSG', data: { authorizeUrl } }));
@@ -50,11 +49,9 @@ class GoogleController {
       if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
       if (!state) throw new UnknownError('Invalid state.');
 
-      const googleAuthState = req.cookies.googleAuthState;
-      console.log('googleAuthState', googleAuthState);
-      if (state !== googleAuthState) {
+      /*       if (state !== googleAuthState) {
         throw new UnknownError('State does not match. Possible CSRF attack.');
-      }
+      } */
 
       const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
