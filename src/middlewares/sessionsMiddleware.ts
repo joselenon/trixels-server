@@ -17,7 +17,7 @@ export default function sessionsMiddleware() {
       httpOnly: true,
     },
     genid: (req) => {
-      console.log('Creating new session for request:', req.sessionID);
+      console.log('Creating new session for request:', req.session.state);
       return req.sessionID || (1e8 * Math.random()).toString(36);
     },
   });
