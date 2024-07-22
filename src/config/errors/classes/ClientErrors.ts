@@ -102,15 +102,27 @@ export class CodeNotFound extends ClientError {
   }
 }
 
-export class CodeUsageLimitError extends ClientError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_USAGE_LIMIT) {
+export class CodeAlreadyUsed extends ClientError {
+  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_ALREADY_USED) {
     super(message, RESPONSE_CONFIG.ERROR.TYPES.Deposit, 403);
   }
 }
 
-export class CodeAlreadyUsed extends ClientError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_ALREADY_USED) {
-    super(message, RESPONSE_CONFIG.ERROR.TYPES.Deposit, 403);
+export class CodeUsageLimitError extends ClientError {
+  constructor(pubSubConfig: IPubSubConfig, message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.CODE_USAGE_LIMIT) {
+    super(message, RESPONSE_CONFIG.ERROR.TYPES.Game, 403);
+
+    PubSubEventManager.publishEvent(
+      'GET_LIVE_MESSAGES',
+      {
+        success: false,
+        type: pubSubConfig.reqType,
+        message: 'CODE_USAGE_LIMIT',
+        request: pubSubConfig.request,
+        data: '',
+      },
+      pubSubConfig.userId,
+    );
   }
 }
 

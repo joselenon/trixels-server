@@ -10,7 +10,7 @@ interface RabbitMQServiceOptions {
   password: string;
 }
 
-type TRabbitMQQueues = 'balanceUpdateQueue' | 'evenRafflesQueue' | 'oddRafflesQueue';
+type TRabbitMQQueues = 'balanceUpdateQueue' | 'evenRafflesQueue' | 'oddRafflesQueue' | 'redemptionCodeQueue';
 
 export default class RabbitMQService {
   private connection: amqp.Connection | null = null;
@@ -161,7 +161,7 @@ export default class RabbitMQService {
     this.channel.sendToQueue(queueName, Buffer.from(messageToJSON), messageOptions);
   }
 
-  async sendRPCMessage(queueName: TRabbitMQQueues, message: any): Promise<any> {
+  async sendRPCMessage(queueName: TRabbitMQQueues, message: any): Promise<{ authorized: boolean }> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
@@ -187,7 +187,7 @@ export default class RabbitMQService {
           const content = JSON.parse(msg.content.toString());
           resolve(content);
         } else {
-          resolve(null);
+          resolve({ authorized: false });
         }
       });
 

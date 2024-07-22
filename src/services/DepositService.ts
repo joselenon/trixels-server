@@ -2,14 +2,13 @@ import * as admin from 'firebase-admin';
 
 import { CodeAlreadyUsed, CodeNotFound, CodeUsageLimitError } from '../config/errors/classes/ClientErrors';
 import { IRedeemCodePayload } from '../config/interfaces/IPayloads';
-import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
-import ICode from '../config/interfaces/ICode';
 
-import { FirebaseInstance } from '..';
-import { ICreateTransactionPayload } from '../config/interfaces/ITransaction';
+import { FirebaseInstance, RabbitMQInstance } from '..';
 import BalanceUpdateService, { IDepositEnv } from './BalanceUpdateService';
 import { UnavailableNetworkError, UnavailableTokenError } from '../config/errors/classes/DepositErrors';
 import { IGetDepositWalletResponse } from '../config/interfaces/IDeposit';
+import IRedemptionCodesInDb from '../config/interfaces/IRedemptionCodes';
+import { UnknownError } from '../config/errors/classes/SystemErrors';
 
 /* export type TMethodInfo = {
   networks: { description: string; walletAddress: string; minimumAmount: number }[];
@@ -24,6 +23,11 @@ export interface IGetDepositWalletPayload {
   network: string;
 }
 
+interface IRedemptionCodeQueueMessage {
+  codeValue: string;
+  userId: string;
+}
+
 class DepositService {
   /*   async getDepositMethods(): Promise<IDepositMethods> {
     return {
@@ -31,6 +35,80 @@ class DepositService {
       PIXEL: { networks: [{ description: 'Ronin', walletAddress: 'TRIXELS.RON', minimumAmount: 10 }] },
     };
   } */
+
+  validateRules() {
+    /* COLOCAR VERIFICAÇÃO DE RULES PARA RESGATE DE CÓDIGO */
+  }
+
+  async getRedemptionCodeInDb(codeValue: string) {
+    const codeInDb = await FirebaseInstance.getSingleDocumentByParam<IRedemptionCodesInDb>(
+      'redemptionCodes',
+      'codeValue',
+      codeValue,
+    );
+    if (!codeInDb) throw new CodeNotFound();
+    return codeInDb;
+  }
+
+  checkRedemptionCodeAvailability(codeInDbData: IRedemptionCodesInDb, userId: string) {
+    const { claims, numberOfUses } = codeInDbData.info;
+    if (claims.length >= numberOfUses) throw new CodeUsageLimitError({ reqType: 'REDEEM_CODE', userId });
+
+    const userAlreadyClaimed = claims.some((claimRef) => userId === claimRef.id);
+    if (userAlreadyClaimed) throw new CodeAlreadyUsed();
+  }
+
+  async updateRedemptionCode() {}
+
+  startRedeemRedemptionCodeQueue() {
+    const handleMessage = async (message: string) => {
+      const nowTime = Date.now();
+
+      const messageToJS = JSON.parse(message) as IRedemptionCodeQueueMessage;
+      const { codeValue, userId } = messageToJS;
+
+      const { docData: codeDataInDb, docRef: codeRef } = await this.getRedemptionCodeInDb(codeValue);
+
+      /* Re-runs this to validate with current DB status */
+      this.checkRedemptionCodeAvailability(codeDataInDb, userId);
+
+      /* Work on this REVIEW */
+      this.validateRules();
+
+      const { reward } = codeDataInDb.info;
+      const { docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', userId);
+
+      await FirebaseInstance.firestore.runTransaction(async (transaction) => {
+        transaction.update(codeRef, {
+          'info.claims': admin.firestore.FieldValue.arrayUnion(userRef),
+        });
+
+        const { authorized } = await BalanceUpdateService.sendBalanceUpdateRPCMessage<IDepositEnv>({
+          userId,
+          type: 'deposit',
+          env: {
+            transactionInfo: {
+              type: 'codeRedeem',
+              fromAddress: null,
+              createdAt: nowTime,
+              symbol: 'PIXEL',
+              value: reward,
+            },
+          },
+        });
+
+        if (!authorized) throw new UnknownError('Undoing claims push');
+      });
+    };
+
+    RabbitMQInstance.consumeMessages('redemptionCodeQueue', async (msg) => {
+      await handleMessage(msg);
+    });
+  }
+
+  async addRedeemCodeToQueue({ codeValue, userId }: IRedemptionCodeQueueMessage) {
+    return await RabbitMQInstance.sendMessage('redemptionCodeQueue', { codeValue, userId });
+  }
 
   async getDepositWallet(userDocId: string, payload: IGetDepositWalletPayload): Promise<IGetDepositWalletResponse> {
     const { network, symbol } = payload;
@@ -57,48 +135,13 @@ class DepositService {
 
   /* REVISAR */
   async redeemCode(userDocId: string, payload: IRedeemCodePayload) {
-    const nowTime = Date.now();
-    if (!payload.code) throw new InvalidPayloadError();
+    const { codeValue } = payload;
+    const { docData } = await this.getRedemptionCodeInDb(codeValue);
 
-    const { code } = payload;
+    /* Runs this to prevent an already invalid information to be queued */
+    this.checkRedemptionCodeAvailability(docData, userDocId);
 
-    await FirebaseInstance.firestore.runTransaction(async (transaction) => {
-      const codeInfo = await FirebaseInstance.getSingleDocumentByParam<ICode>('redemptionCodes', 'name', code);
-      if (!codeInfo || !codeInfo.docData) throw new CodeNotFound();
-
-      const { docRef: codeRef, docData: codeData } = codeInfo;
-      const { nUsers, claims, value } = codeData;
-
-      if (claims.length >= nUsers) throw new CodeUsageLimitError();
-
-      const userAlreadyClaimed = claims.some((claimRef) => userDocId === claimRef.id);
-      if (userAlreadyClaimed) throw new CodeAlreadyUsed();
-
-      const { docId: userId, docRef: userRef } = await FirebaseInstance.getDocumentRefWithData('users', userDocId);
-      const payload = {
-        claims: admin.firestore.FieldValue.arrayUnion(userRef),
-      };
-
-      transaction.update(codeRef, payload);
-
-      const transactionFullPayload: ICreateTransactionPayload = {
-        symbol: 'PIXEL',
-        type: 'deposit',
-        userRef,
-        value,
-        createdAt: nowTime,
-      };
-
-      const rafflesCollectionRef = await FirebaseInstance.getCollectionRef('transactions');
-      const newTransactionRef = rafflesCollectionRef.doc();
-      transaction.set(newTransactionRef, transactionFullPayload);
-
-      await BalanceUpdateService.addToQueue<IDepositEnv>({
-        userId,
-        type: 'deposit',
-        env: { transactionInfo: { type: 'codeRedeem', fromAddress: null, createdAt: nowTime, symbol: 'PIXEL', value } },
-      });
-    });
+    await this.addRedeemCodeToQueue({ codeValue, userId: userDocId });
   }
 }
 

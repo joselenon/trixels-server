@@ -143,16 +143,17 @@ class UserService {
   }): Promise<{ userCredentials: IUser; userCreatedId: string }> {
     if (!this.isUsernameValid(username)) throw new InvalidUsernameError();
 
-    const userExists = await this.checkIfUsernameExists(username);
+    const customFilteredUsername = this.filterCustomUsername(username);
+
+    const userExists = await this.checkIfUsernameExists(customFilteredUsername);
     if (userExists) throw new UsernameAlreadyExistsError();
 
     const nowTime = Date.now();
-
     const encryptedPassword = await encryptString(password);
 
     /* REVER QUESTÃO DO PASSWORD E RETORNO PARA O FRONT!!!!!! */
     const userInDbObj: IUser = {
-      username,
+      username: customFilteredUsername,
       password: encryptedPassword,
       avatar: '',
       balance: 0,
@@ -215,7 +216,9 @@ class UserService {
     userId: string;
     userCredentials: IUserToFrontEnd;
   }> {
-    const userExists = await this.checkIfUsernameExists(username);
+    const customFilteredUsername = this.filterCustomUsername(username);
+
+    const userExists = await this.checkIfUsernameExists(customFilteredUsername);
     if (!userExists) throw new InvalidUsernameError();
 
     const { data: userData } = userExists;

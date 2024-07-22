@@ -21,7 +21,7 @@ export interface IUserUpdateBalance {
 }
 
 export interface IRedeemCodePayload {
-  code: string;
+  codeValue: string;
 }
 
 export interface IJackpotBetPayload {

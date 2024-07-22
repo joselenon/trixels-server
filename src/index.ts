@@ -8,6 +8,7 @@ import RedisService from './services/RedisService';
 import { RaffleUtils } from './services/RafflesServices';
 import BalanceUpdateService from './services/BalanceUpdateService';
 import RabbitMQService from './services/RabbitMQService';
+import DepositService from './services/DepositService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -26,6 +27,7 @@ async function init() {
   await RedisInstance.flushAll();
 
   BalanceUpdateService.processBalanceUpdateQueue();
+  DepositService.startRedeemRedemptionCodeQueue();
 
   await RaffleUtils.startRafflesServices();
   await AppService.initialize();

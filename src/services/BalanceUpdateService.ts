@@ -89,11 +89,15 @@ class BalanceUpdateService {
     }
   }
 
+  async sendBalanceUpdateRPCMessage<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
+    return (await RabbitMQInstance.sendRPCMessage('balanceUpdateQueue', balanceUpdatePayload)) as {
+      authorized: boolean;
+    };
+  }
+
   async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>): Promise<null | IBalanceAuthorization> {
     if (balanceUpdatePayload.type === 'buyRaffleTicket' || balanceUpdatePayload.type === 'createRaffle') {
-      return (await RabbitMQInstance.sendRPCMessage('balanceUpdateQueue', balanceUpdatePayload)) as {
-        authorized: boolean;
-      };
+      return await this.sendBalanceUpdateRPCMessage<Env>(balanceUpdatePayload);
     }
 
     await RabbitMQInstance.sendMessage('balanceUpdateQueue', balanceUpdatePayload);
@@ -254,6 +258,7 @@ class BalanceUpdateService {
     return { wasAVerification: false };
   }
 
+  /* Creates the transaction document and update user balance (both in DB and Client) */
   async processDeposit(item: IBalanceUpdateItemPayload<IDepositEnv>) {
     try {
       await FirebaseInstance.firestore.runTransaction(async (transaction) => {

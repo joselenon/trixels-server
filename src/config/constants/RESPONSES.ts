@@ -49,7 +49,7 @@ const RESPONSE_CONFIG = {
       INVALID_USERNAME: 'Username or password invalid',
       INVALID_PASSWORD: 'Username or password invalid',
       JWT_EXPIRED: 'Token expired',
-      CODE_NOT_FOUND: 'Invalid code',
+      CODE_NOT_FOUND: 'Code not found',
       CODE_USAGE_LIMIT: 'Code reached limit',
       CODE_ALREADY_USED: 'Code already used',
       USERNAME_ALREADY_EXISTS: 'Username already exists',
