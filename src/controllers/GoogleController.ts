@@ -45,22 +45,22 @@ class GoogleController {
   }
 
   async callbackSignIn(req: Request, res: Response /* , next: NextFunction */) {
-    const code = req.query.code as string;
-    const state = req.query.state as string;
-
-    if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
-    if (!state) throw new UnknownError('Invalid state.');
-
-    const storedState = req.session.state;
-
-    console.log('state', state);
-    console.log('storedState', storedState);
-
-    if (state !== storedState) {
-      throw new UnknownError('State does not match. Possible CSRF attack.');
-    }
-
     try {
+      const code = req.query.code as string;
+      const state = req.query.state as string;
+
+      if (!code || typeof code !== 'string') throw new InvalidPayloadError('Invalid code');
+      if (!state) throw new UnknownError('Invalid state.');
+
+      const storedState = req.session.state;
+
+      console.log('state', state);
+      console.log('storedState', storedState);
+
+      if (state !== storedState) {
+        throw new UnknownError('State does not match. Possible CSRF attack.');
+      }
+
       const redirectUri = `${API_URL}${URLS.ENDPOINTS.AUTH.GOOGLE_LOGIN.initial}`;
 
       const oAuth2Client = new OAuth2Client(
