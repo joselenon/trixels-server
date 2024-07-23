@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+require('newrelic');
 
 import FirebaseCredentials from './config/app/FirebaseCredentials';
 import ENVIRONMENT from './config/constants/ENVIRONMENT';

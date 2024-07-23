@@ -63,7 +63,7 @@ class RafflesController {
         info,
       };
 
-      await RabbitMQInstance.sendMessage('evenRafflesQueue', buyRaffleTicketsPayloadRedis);
+      await RabbitMQInstance.sendMessage(`raffle:${gameId}`, buyRaffleTicketsPayloadRedis);
 
       res
         .status(200)

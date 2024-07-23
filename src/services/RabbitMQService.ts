@@ -58,6 +58,20 @@ export default class RabbitMQService {
     );
   }
 
+  public async queueAlreadyExists(queueName: string) {
+    try {
+      if (!this.channel) {
+        console.error('Channel is not available.');
+        return;
+      }
+
+      await this.channel.assertQueue(queueName);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   private createChannel() {
     if (!this.connection) return;
 
@@ -120,7 +134,7 @@ export default class RabbitMQService {
     }
   }
 
-  async createQueue(queueName: TRabbitMQQueues, queueOptions: amqp.Options.AssertQueue = {}): Promise<void> {
+  async createQueue(queueName: TRabbitMQQueues | string, queueOptions: amqp.Options.AssertQueue = {}): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
@@ -129,7 +143,7 @@ export default class RabbitMQService {
     this.channel.assertQueue(queueName, queueOptions);
   }
 
-  async deleteQueue(queueName: TRabbitMQQueues): Promise<void> {
+  async deleteQueue(queueName: TRabbitMQQueues | string): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
@@ -138,7 +152,7 @@ export default class RabbitMQService {
     this.channel.deleteQueue(queueName);
   }
 
-  async sendMessage(queueName: TRabbitMQQueues, message: any): Promise<void> {
+  async sendMessage(queueName: TRabbitMQQueues | string, message: any): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
@@ -214,7 +228,10 @@ export default class RabbitMQService {
     });
   }
 
-  async consumeMessages(queueName: TRabbitMQQueues, callback: (message: string) => Promise<void>): Promise<void> {
+  async consumeMessages(
+    queueName: TRabbitMQQueues | string,
+    callback: (message: string) => Promise<void>,
+  ): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');

@@ -546,8 +546,24 @@ class RaffleUtils {
   }
 
   static async startRafflesServices(): Promise<void> {
-    await RaffleUtils.getAllRaffles();
-    await RabbitMQInstance.consumeMessages('evenRafflesQueue', RaffleUtils.processRafflesTicketsQueue);
+    const raffleInRedis = await RaffleUtils.getAllRaffles();
+    const { activeRaffles } = raffleInRedis;
+
+    // Verifica se cada raffle possui uma fila e cria se necessário
+    for (const raffle of activeRaffles) {
+      const queueName = `raffle:${raffle.gameId}`;
+
+      const queueAlreadyExists = await RabbitMQInstance.queueAlreadyExists(queueName);
+
+      if (queueAlreadyExists) {
+        console.log(`Queue ${queueName} already exists.`);
+      } else {
+        console.log(`Creating queue ${queueName}.`);
+        await RabbitMQInstance.createQueue(queueName, { durable: true });
+      }
+
+      await RabbitMQInstance.consumeMessages(queueName, RaffleUtils.processRafflesTicketsQueue);
+    }
 
     console.log('Raffles Services Initialized.');
   }
@@ -714,6 +730,10 @@ class CreateRaffle {
           },
           this.userDoc.docId,
         );
+
+        const queueName = `raffle:${newRaffleId}`;
+        await RabbitMQInstance.createQueue(queueName, { durable: true });
+        await RabbitMQInstance.consumeMessages(queueName, RaffleUtils.processRafflesTicketsQueue);
       });
     } catch (err) {
       throw new CreateRaffleUnexpectedError(JSON.stringify(payload));
@@ -857,6 +877,8 @@ class UpdateRaffle {
 
     await this.loadRaffle('ended');
     await this.payWinners();
+
+    await RabbitMQInstance.deleteQueue(`raffle:${gameId}`);
   }
 }
 
