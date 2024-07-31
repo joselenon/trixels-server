@@ -39,18 +39,14 @@ export interface IDepositEnv {
 
 /* Item refers to the item in the queue */
 
-interface IBalanceUpdateItemPayload<Env> {
+export interface IBalanceUpdateItemPayload<Env> {
   userId: string;
   type: 'buyRaffleTicket' | 'payWinners' | 'createRaffle' | 'deposit' | 'refund' | 'walletVerification';
   env: Env;
 }
 
-export interface IBalanceAuthorization {
-  authorized: boolean;
-}
-
 class BalanceUpdateService {
-  private balanceUpdateQueueRedisKey: string;
+  public balanceUpdateQueueRedisKey: string;
 
   constructor() {
     this.balanceUpdateQueueRedisKey = getRedisKeyHelper('balanceUpdateQueue');
@@ -90,21 +86,14 @@ class BalanceUpdateService {
   }
 
   async sendBalanceUpdateRPCMessage<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
-    return (await RabbitMQInstance.sendRPCMessage('balanceUpdateQueue', balanceUpdatePayload)) as {
-      authorized: boolean;
-    };
+    return await RabbitMQInstance.sendRPCMessage(this.balanceUpdateQueueRedisKey, balanceUpdatePayload);
   }
 
-  async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>): Promise<null | IBalanceAuthorization> {
-    if (balanceUpdatePayload.type === 'buyRaffleTicket' || balanceUpdatePayload.type === 'createRaffle') {
-      return await this.sendBalanceUpdateRPCMessage<Env>(balanceUpdatePayload);
-    }
-
-    await RabbitMQInstance.sendMessage('balanceUpdateQueue', balanceUpdatePayload);
-    return null;
+  async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
+    return await RabbitMQInstance.sendMessage(this.balanceUpdateQueueRedisKey, balanceUpdatePayload);
   }
 
-  processBalanceUpdateQueue() {
+  async processBalanceUpdateQueue() {
     const handleMessage = async (message: string) => {
       const messageToJS = JSON.parse(message) as IBalanceUpdateItemPayload<unknown>;
 
@@ -135,7 +124,7 @@ class BalanceUpdateService {
       }
     };
 
-    RabbitMQInstance.consumeMessages('balanceUpdateQueue', async (msg) => {
+    RabbitMQInstance.consumeMessages(this.balanceUpdateQueueRedisKey, async (msg) => {
       await handleMessage(msg);
     });
   }
@@ -185,7 +174,6 @@ class BalanceUpdateService {
         BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
     } catch (err: unknown) {
-      console.log('ERROR', err);
       if (err instanceof SystemError) {
         throw new ProcessBuyRaffleTicketItemError(JSON.stringify(item));
       }

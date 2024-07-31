@@ -2,12 +2,14 @@
 import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
-import { AuthError } from '../config/errors/classes/ClientErrors';
-import UserService, { IUpdateUserCredentialsPayload } from '../services/UserService';
+import { AuthError, InvalidUsernameError } from '../config/errors/classes/ClientErrors';
+import UserService from '../services/UserService';
 import JWTService from '../services/JWTService';
 import { IUserToFrontEnd } from '../config/interfaces/IUser';
 import CookiesConfig from '../config/app/CookiesConfig';
 import AuthService from '../services/AuthService';
+import RegisterUserService from '../services/UserServices/RegisterUserService';
+import UserCredentialsService, { IUpdateUserCredentialsPayload } from '../services/UserServices/UserCredentialsService';
 
 class UserController {
   /* TIRAR ISSO DAQUI E COLOCAR EM UM AUTHCONTROLLER REVIEW */
@@ -28,10 +30,9 @@ class UserController {
         throw new InvalidPayloadError();
       }
 
-      const { userCredentials, userCreatedId } = await UserService.registerUser({
-        username,
-        password,
-      });
+      if (!UserService.isUsernameValid(username)) throw new InvalidUsernameError();
+
+      const { userCredentials, userCreatedId } = await RegisterUserService.registerUser({ username, password });
 
       const { accessToken, refreshToken } = await AuthService.genAuthTokens({
         userId: userCreatedId,
@@ -167,17 +168,18 @@ class UserController {
 
       const filteredPayload: IUpdateUserCredentialsPayload = {
         email: payload.email.toLowerCase(),
-        roninWallet: payload.roninWallet.toLowerCase(),
+        roninWalletValue: payload.roninWallet.toLowerCase(),
       };
 
-      const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, filteredPayload);
+      await UserCredentialsService.updateUserCredentials({ userDoc, payload: filteredPayload });
+
+      /* const userToFrontendUpdated = await UserService.updateUserCredentials(userDoc, filteredPayload); */
 
       res.status(200).json(
         responseBody({
           success: true,
           type: 'UPDATE_USER_CREDENTIALS',
           message: 'UPDATE_MSG',
-          data: userToFrontendUpdated,
         }),
       );
     } catch (err) {

@@ -1,9 +1,9 @@
 /* Refatorar para classe que recebe parâmetros da bet (necessário refatoração da estrutura da bet para ser um registro genérico de aposta) */
 
 import {
-  GameAlreadyFinished,
+  GameAlreadyFinishedError,
   InsufficientBalanceError,
-  TicketAlreadyTaken,
+  TicketAlreadyTakenError,
 } from '../config/errors/classes/ClientErrors';
 import { IBuyRaffleTicketsPayload } from '../config/interfaces/IBet';
 import { IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
@@ -30,7 +30,7 @@ class BetValidatorService {
 
       const ticketsAlreadyUsed = tickets.filter((num) => ticketNumbers.includes(num));
       if (ticketsAlreadyUsed.length > 0)
-        throw new TicketAlreadyTaken(ticketsAlreadyUsed, { reqType: 'BUY_RAFFLE_TICKET', userId });
+        throw new TicketAlreadyTakenError(ticketsAlreadyUsed, { reqType: 'BUY_RAFFLE_TICKET', userId });
     }
   }
 
@@ -49,7 +49,7 @@ class BetValidatorService {
 
     if (finishedAt) {
       const finishedAtToInt = parseInt(finishedAt);
-      if (finishedAtToInt < betMadeAt) throw new GameAlreadyFinished({ reqType: 'BUY_RAFFLE_TICKET', userId });
+      if (finishedAtToInt < betMadeAt) throw new GameAlreadyFinishedError({ reqType: 'BUY_RAFFLE_TICKET', userId });
     }
 
     const { info: buyRaffleTicketPayloadInfo } = buyRaffleTicketPayload;

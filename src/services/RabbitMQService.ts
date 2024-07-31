@@ -1,7 +1,7 @@
 import amqp from 'amqplib/callback_api';
 import { v4 as uuidv4 } from 'uuid';
-import { ClientError } from '../config/errors/classes/ClientErrors';
-import { SystemError } from '../config/errors/classes/SystemErrors';
+import { ClientError, ClientErrorMap } from '../config/errors/classes/ClientErrors';
+import { SystemError, UnknownError } from '../config/errors/classes/SystemErrors';
 
 interface RabbitMQServiceOptions {
   host: string;
@@ -11,6 +11,12 @@ interface RabbitMQServiceOptions {
 }
 
 type TRabbitMQQueues = 'balanceUpdateQueue' | 'evenRafflesQueue' | 'oddRafflesQueue' | 'redemptionCodeQueue';
+
+interface IRPCResponse<DataReturned> {
+  authorized: boolean;
+  fnReturnedData: DataReturned | null;
+  errorProps?: { type: 'Client Error' | 'System Error'; name: string; status: number };
+}
 
 export default class RabbitMQService {
   private connection: amqp.Connection | null = null;
@@ -56,6 +62,21 @@ export default class RabbitMQService {
         this.createChannel();
       },
     );
+  }
+
+  checkForErrorsAfterRPC(rpcResponse: IRPCResponse<any>) {
+    const { authorized, errorProps } = rpcResponse;
+
+    if (!authorized) {
+      if (errorProps && errorProps.type === 'Client Error') {
+        const ErrorMapped = ClientErrorMap[errorProps.name];
+        if (ErrorMapped) {
+          throw new ErrorMapped();
+        }
+      }
+
+      throw new UnknownError(`Something went wrong: ${errorProps}`);
+    }
   }
 
   public async queueAlreadyExists(queueName: string) {
@@ -175,7 +196,10 @@ export default class RabbitMQService {
     this.channel.sendToQueue(queueName, Buffer.from(messageToJSON), messageOptions);
   }
 
-  async sendRPCMessage(queueName: TRabbitMQQueues, message: any): Promise<{ authorized: boolean }> {
+  async sendRPCMessage<Message, DataReturned>(
+    queueName: TRabbitMQQueues | string,
+    message: Message,
+  ): Promise<IRPCResponse<DataReturned>> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
@@ -201,11 +225,10 @@ export default class RabbitMQService {
           const content = JSON.parse(msg.content.toString());
           resolve(content);
         } else {
-          resolve({ authorized: false });
+          resolve({ authorized: false, fnReturnedData: null });
         }
       });
 
-      // Enviar mensagem para a fila com propriedades de RPC
       this.channel?.assertQueue(queueName, queueOptions);
       this.channel?.sendToQueue(queueName, Buffer.from(messageToJSON), messageOptions);
     });
@@ -228,9 +251,10 @@ export default class RabbitMQService {
     });
   }
 
+  /* ATTENTION: The callback must do the parse of the message */
   async consumeMessages(
     queueName: TRabbitMQQueues | string,
-    callback: (message: string) => Promise<void>,
+    callback: (message: string) => Promise<any>,
   ): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
@@ -250,13 +274,13 @@ export default class RabbitMQService {
         const correlationId = message.properties.correlationId;
 
         try {
-          await callback(content);
+          const fnReturnedData = await callback(content);
           this.channel?.ack(message);
 
           if (correlationId) {
-            this.sendReplyMessage({ authorized: true }, correlationId);
+            this.sendReplyMessage({ authorized: true, fnReturnedData }, correlationId);
           }
-        } catch (err) {
+        } catch (err: any) {
           if (err instanceof ClientError) {
             this.channel?.nack(message, false, false); // don't requeue the message
           }
@@ -267,7 +291,14 @@ export default class RabbitMQService {
           }
 
           if (correlationId) {
-            this.sendReplyMessage({ authorized: false }, correlationId);
+            this.sendReplyMessage(
+              {
+                authorized: false,
+                fnReturnedData: null,
+                errorProps: { name: err.name, type: err.type, status: err.status },
+              } as IRPCResponse<null>,
+              correlationId,
+            );
           }
         }
       }

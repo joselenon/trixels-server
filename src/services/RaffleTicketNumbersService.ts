@@ -1,4 +1,4 @@
-import { QuantityExceedsAvailableTickets } from '../config/errors/classes/ClientErrors';
+import { QuantityExceedsAvailableTicketsError } from '../config/errors/classes/ClientErrors';
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import { IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
 import { IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
@@ -26,7 +26,7 @@ class RaffleTicketNumbersService {
 
   private async genRandomTicketNumbers(availableTicketNumbers: number[], quantityToGen: number) {
     if (availableTicketNumbers.length < quantityToGen) {
-      throw new QuantityExceedsAvailableTickets({ reqType: 'CREATE_RAFFLE', userId: this.userId });
+      throw new QuantityExceedsAvailableTicketsError({ reqType: 'CREATE_RAFFLE', userId: this.userId });
     }
 
     const getRandomNumbersFromArray = (arr: number[], quantity: number): number[] => {
@@ -51,7 +51,7 @@ class RaffleTicketNumbersService {
     if (randomTicket) {
       const availableTicketNumbers = this.getAvailableTicketNumbers(bets, totalTickets);
       if (availableTicketNumbers.length < 1) {
-        throw new QuantityExceedsAvailableTickets({ reqType: 'CREATE_RAFFLE', userId: this.userId });
+        throw new QuantityExceedsAvailableTicketsError({ reqType: 'CREATE_RAFFLE', userId: this.userId });
       }
 
       return await this.genRandomTicketNumbers(availableTicketNumbers, 1);

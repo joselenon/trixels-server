@@ -15,6 +15,7 @@ import {
 } from '../config/errors/classes/SystemErrors';
 import { IUser, IUserToFrontEnd } from '../config/interfaces/IUser';
 import AxiosService from './AxiosService';
+import UserCredentialsService from './UserServices/UserCredentialsService';
 
 interface IGoogleApisUserInfo {
   sub: string;
@@ -27,7 +28,7 @@ class AuthService {
   async genAccessToken(refreshToken: string, userId: string) {
     const refreshTokenRedisKey = getRedisKeyHelper('refreshToken', refreshToken);
 
-    const userCredentials = await UserService.getUserCredentialsById(userId, true);
+    const userCredentials = await UserCredentialsService.getUserCredentialsById(userId, true);
     const { username, avatar } = userCredentials;
 
     const genJWT = JWTService.signJWT({ username, avatar, userDocId: userId });
@@ -123,6 +124,53 @@ class AuthService {
     return { refreshToken, accessToken: bearerToken };
   }
 
+  async makeUsernameUnique(username: string) {
+    const adjectives = [
+      'Amazing',
+      'Brilliant',
+      'Crazy',
+      'Daring',
+      'Energetic',
+      'Fantastic',
+      'Glorious',
+      'Heroic',
+      'Incredible',
+      'Joyful',
+      'Kind',
+      'Legendary',
+      'Mighty',
+      'Noble',
+      'Outstanding',
+      'Powerful',
+      'Quick',
+      'Radiant',
+      'Strong',
+      'Talented',
+      'Unique',
+      'Victorious',
+      'Wonderful',
+      'Xtraordinary',
+      'Youthful',
+      'Zealous',
+    ];
+
+    let uniqueUsername = '';
+    let isUnique = false;
+
+    while (!isUnique) {
+      const randomIndex = Math.floor(Math.random() * adjectives.length);
+      const randomAdjective = adjectives[randomIndex];
+      uniqueUsername = `${randomAdjective}${username}`;
+
+      const userExists = await UserService.checkIfUsernameExists(uniqueUsername);
+      if (!userExists) {
+        isUnique = true;
+      }
+    }
+
+    return uniqueUsername;
+  }
+
   /* Juntar formação de payload do usuário em uma lógica só!! (updateUserCredentials) */
   async registerUserThroughGoogle({
     googlePersonalName,
@@ -144,7 +192,7 @@ class AuthService {
       }
 
       const userExists = await UserService.checkIfUsernameExists(customFilteredUsername);
-      if (userExists) customFilteredUsername = await UserService.makeUsernameUnique(customFilteredUsername);
+      if (userExists) customFilteredUsername = await this.makeUsernameUnique(customFilteredUsername);
 
       const nowTime = Date.now();
 

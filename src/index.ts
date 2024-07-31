@@ -9,6 +9,8 @@ import { RaffleUtils } from './services/RafflesServices';
 import BalanceUpdateService from './services/BalanceUpdateService';
 import RabbitMQService from './services/RabbitMQService';
 import DepositService from './services/DepositService';
+import RegisterUserService from './services/UserServices/RegisterUserService';
+import UserCredentialsService from './services/UserServices/UserCredentialsService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -26,8 +28,11 @@ const RabbitMQInstance = new RabbitMQService({ host: 'localhost', password: 'gue
 async function init() {
   await RedisInstance.flushAll();
 
-  BalanceUpdateService.processBalanceUpdateQueue();
-  DepositService.startRedeemRedemptionCodeQueue();
+  await RegisterUserService.startRegisterUserQueue();
+  await UserCredentialsService.startUpdateUserCredentialsQueue();
+
+  await BalanceUpdateService.processBalanceUpdateQueue();
+  await DepositService.startRedeemRedemptionCodeQueue();
 
   await RaffleUtils.startRafflesServices();
   await AppService.initialize();

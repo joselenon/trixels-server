@@ -9,14 +9,14 @@ export interface IPubSubConfig {
 
 export class UnavailableNetworkError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.UNAVAILABLE_NETWORK) {
-    super(message, RESPONSE_CONFIG.ERROR.TYPES.Deposit, 403);
+    super(message, RESPONSE_CONFIG.ERROR.NAMES.UnavailableNetworkError, 403);
     this.name = 'UnavailableNetworkError';
   }
 }
 
 export class UnavailableTokenError extends ClientError {
   constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.UNAVAILABLE_NETWORK) {
-    super(message, RESPONSE_CONFIG.ERROR.TYPES.Deposit, 403);
+    super(message, RESPONSE_CONFIG.ERROR.NAMES.UnavailableTokenError, 403);
     this.name = 'UnavailableTokenError';
   }
 }

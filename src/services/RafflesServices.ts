@@ -3,10 +3,10 @@ import itemsInfo, { IItemsInfo } from '../assets/itemsInfo';
 import { getAllPrizesItems } from '../common/raffleObjInteractions';
 import { TotalTimeToRoll } from '../config/app/games/RaffleConfig';
 import {
-  GameAlreadyFinished,
+  GameAlreadyFinishedError,
   IPubSubConfig,
   InsufficientBalanceError,
-  TicketBuyLimitReached,
+  TicketBuyLimitReachedError,
 } from '../config/errors/classes/ClientErrors';
 import {
   CreateRaffleUnexpectedError,
@@ -39,11 +39,7 @@ import getRedisKeyHelper from '../helpers/redisHelper';
 import formatIrrationalCryptoAmount from '../common/formatIrrationalCryptoAmount';
 import BalanceService from './BalanceService';
 import calcWithDecimalsService from '../common/calcWithDecimals';
-import BalanceUpdateService, {
-  IBalanceAuthorization,
-  IReceiveActionEnv,
-  ISpendActionEnv,
-} from './BalanceUpdateService';
+import BalanceUpdateService, { IReceiveActionEnv, ISpendActionEnv } from './BalanceUpdateService';
 import PubSubEventManager, { IPubSubCreateRaffleData } from './PubSubEventManager';
 import BetsService from './BetsService';
 import RaffleTicketNumbersService from './RaffleTicketNumbersService';
@@ -122,7 +118,7 @@ class RaffleUtils {
       const raffleFound = activeRaffles.find((raffle) => raffle.gameId === gameId);
       if (!raffleFound) {
         if ((reqType === 'BUY_RAFFLE_TICKET' || reqType === 'CREATE_RAFFLE') && userId) {
-          throw new GameAlreadyFinished({ reqType, userId });
+          throw new GameAlreadyFinishedError({ reqType, userId });
         }
 
         throw new RaffleLostError(JSON.stringify(payload));
@@ -448,7 +444,7 @@ class RaffleUtils {
   }
 
   static async processRafflesTicketsQueue(message: string) {
-    let authorization: IBalanceAuthorization | null = null;
+    let wasAuthorized: boolean = false;
     let amountBet: number = 0;
 
     const messageToObj: IBuyRaffleTicketsPayloadRedis = JSON.parse(message);
@@ -472,22 +468,20 @@ class RaffleUtils {
         maxTicketsPerUser &&
         (allUserTickets === maxTicketsPerUser || allUserTickets + ticketNumbers.length > maxTicketsPerUser)
       ) {
-        throw new TicketBuyLimitReached({ reqType: 'BUY_RAFFLE_TICKET', userId });
+        throw new TicketBuyLimitReachedError({ reqType: 'BUY_RAFFLE_TICKET', userId });
       }
 
       const TicketNumberInstance = new RaffleTicketNumbersService(userId, raffleInRedis);
       const ticketNumbersFiltered = await TicketNumberInstance.getTicketNumbersFiltered(messageToObj);
       amountBet = ticketPrice * ticketNumbersFiltered.length;
 
-      authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
+      const rpcResponse = await BalanceUpdateService.sendBalanceUpdateRPCMessage<ISpendActionEnv>({
         type: 'buyRaffleTicket',
         userId,
         env: { totalAmountBet: amountBet, pubSubConfig: { reqType: 'BUY_RAFFLE_TICKET', userId } },
       });
-
-      if (authorization && !authorization.authorized) {
-        return; /* In case something goes wrong with 'processBuyRaffleTicketItem' */
-      }
+      RabbitMQInstance.checkForErrorsAfterRPC(rpcResponse);
+      wasAuthorized = rpcResponse.authorized;
 
       await BetValidatorService.checkRaffleBuyRequestValidity({
         userId,
@@ -533,7 +527,7 @@ class RaffleUtils {
         await UpdateRaffleInstance.finishRaffle();
       }
     } catch (err: unknown) {
-      if (authorization && authorization.authorized) {
+      if (wasAuthorized) {
         await BalanceUpdateService.addToQueue<IReceiveActionEnv>({
           type: 'refund',
           userId,
@@ -675,8 +669,7 @@ class CreateRaffle {
         },
       };
 
-      /* Ver se não seria uma boa passar o userDoc inteiro ao inves de somente o ID (mais tarde) REVIEW */
-      const authorization = await BalanceUpdateService.addToQueue<ISpendActionEnv>({
+      const rpcResponse = await BalanceUpdateService.sendBalanceUpdateRPCMessage<ISpendActionEnv>({
         userId: this.userDoc.docId,
         type: 'createRaffle',
         env: {
@@ -684,9 +677,7 @@ class CreateRaffle {
           pubSubConfig: { userId: this.userDoc.docId, reqType: 'CREATE_RAFFLE', request: this.request },
         },
       });
-      if (authorization && !authorization.authorized) {
-        return;
-      }
+      RabbitMQInstance.checkForErrorsAfterRPC(rpcResponse);
 
       let newRaffleId = '';
 

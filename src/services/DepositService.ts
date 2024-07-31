@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 
-import { CodeAlreadyUsed, CodeNotFound, CodeUsageLimitError } from '../config/errors/classes/ClientErrors';
+import { CodeAlreadyUsedError, CodeNotFoundError, CodeUsageLimitError } from '../config/errors/classes/ClientErrors';
 import { IRedeemCodePayload } from '../config/interfaces/IPayloads';
 
 import { FirebaseInstance, RabbitMQInstance } from '..';
@@ -8,7 +8,6 @@ import BalanceUpdateService, { IDepositEnv } from './BalanceUpdateService';
 import { UnavailableNetworkError, UnavailableTokenError } from '../config/errors/classes/DepositErrors';
 import { IGetDepositWalletResponse } from '../config/interfaces/IDeposit';
 import IRedemptionCodesInDb from '../config/interfaces/IRedemptionCodes';
-import { UnknownError } from '../config/errors/classes/SystemErrors';
 
 /* export type TMethodInfo = {
   networks: { description: string; walletAddress: string; minimumAmount: number }[];
@@ -46,7 +45,7 @@ class DepositService {
       'codeValue',
       codeValue,
     );
-    if (!codeInDb) throw new CodeNotFound();
+    if (!codeInDb) throw new CodeNotFoundError();
     return codeInDb;
   }
 
@@ -55,12 +54,12 @@ class DepositService {
     if (claims.length >= numberOfUses) throw new CodeUsageLimitError({ reqType: 'REDEEM_CODE', userId });
 
     const userAlreadyClaimed = claims.some((claimRef) => userId === claimRef.id);
-    if (userAlreadyClaimed) throw new CodeAlreadyUsed();
+    if (userAlreadyClaimed) throw new CodeAlreadyUsedError();
   }
 
   async updateRedemptionCode() {}
 
-  startRedeemRedemptionCodeQueue() {
+  async startRedeemRedemptionCodeQueue() {
     const handleMessage = async (message: string) => {
       const nowTime = Date.now();
 
@@ -83,7 +82,7 @@ class DepositService {
           'info.claims': admin.firestore.FieldValue.arrayUnion(userRef),
         });
 
-        const { authorized } = await BalanceUpdateService.sendBalanceUpdateRPCMessage<IDepositEnv>({
+        const rpcResponse = await BalanceUpdateService.sendBalanceUpdateRPCMessage<IDepositEnv>({
           userId,
           type: 'deposit',
           env: {
@@ -96,8 +95,7 @@ class DepositService {
             },
           },
         });
-
-        if (!authorized) throw new UnknownError('Undoing claims push');
+        RabbitMQInstance.checkForErrorsAfterRPC(rpcResponse);
       });
     };
 
