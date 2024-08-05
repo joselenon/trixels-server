@@ -1,18 +1,18 @@
-import { QuantityExceedsAvailableTicketsError } from '../config/errors/classes/ClientErrors';
-import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
-import { IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
-import { IRaffleToFrontEnd } from '../config/interfaces/IRaffles';
+import { QuantityExceedsAvailableTicketsError } from '../../config/errors/classes/ClientErrors';
+import { InvalidPayloadError } from '../../config/errors/classes/SystemErrors';
+import { IBuyRaffleTicketsPayloadRedis } from '../../config/interfaces/IBet';
+import { IRaffleToFrontEnd } from '../../config/interfaces/IRaffles';
 
-class RaffleTicketNumbersService {
+class TicketNumbersService {
   userId: string;
-  raffleInRedis: IRaffleToFrontEnd;
+  raffleInfo: IRaffleToFrontEnd['info'];
 
-  constructor(userId: string, raffleInRedis: IRaffleToFrontEnd) {
+  constructor(userId: string, raffleInfo: IRaffleToFrontEnd['info']) {
     this.userId = userId;
-    this.raffleInRedis = raffleInRedis;
+    this.raffleInfo = raffleInfo;
   }
 
-  public getAvailableTicketNumbers(betsData: IRaffleToFrontEnd['info']['bets'], totalTickets: number) {
+  private getAvailableTicketNumbers(betsData: IRaffleToFrontEnd['info']['bets'], totalTickets: number) {
     const allTicketsTaken = betsData.map((bet) => bet.info.tickets);
     const concatenatedTicketsTaken = ([] as number[]).concat(...allTicketsTaken);
 
@@ -24,7 +24,7 @@ class RaffleTicketNumbersService {
     return Array.from(allTicketsSet);
   }
 
-  private async genRandomTicketNumbers(availableTicketNumbers: number[], quantityToGen: number) {
+  private genRandomTicketNumbers(availableTicketNumbers: number[], quantityToGen: number) {
     if (availableTicketNumbers.length < quantityToGen) {
       throw new QuantityExceedsAvailableTicketsError({ reqType: 'CREATE_RAFFLE', userId: this.userId });
     }
@@ -42,11 +42,9 @@ class RaffleTicketNumbersService {
     return getRandomNumbersFromArray(availableTicketNumbers, quantityToGen);
   }
 
-  async getTicketNumbersFiltered(buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis) {
-    const { bets, totalTickets } = this.raffleInRedis.info;
-
-    const { info } = buyRaffleTicketPayload;
-    const { randomTicket, ticketNumbers } = info;
+  getTicketNumbersFiltered(buyRaffleTicketInfoPayload: IBuyRaffleTicketsPayloadRedis['info']) {
+    const { bets, totalTickets } = this.raffleInfo;
+    const { randomTicket, ticketNumbers } = buyRaffleTicketInfoPayload;
 
     if (randomTicket) {
       const availableTicketNumbers = this.getAvailableTicketNumbers(bets, totalTickets);
@@ -54,7 +52,7 @@ class RaffleTicketNumbersService {
         throw new QuantityExceedsAvailableTicketsError({ reqType: 'CREATE_RAFFLE', userId: this.userId });
       }
 
-      return await this.genRandomTicketNumbers(availableTicketNumbers, 1);
+      return this.genRandomTicketNumbers(availableTicketNumbers, 1);
     }
 
     if (!ticketNumbers || ticketNumbers.length <= 0) throw new InvalidPayloadError();
@@ -62,4 +60,4 @@ class RaffleTicketNumbersService {
   }
 }
 
-export default RaffleTicketNumbersService;
+export default TicketNumbersService;

@@ -1,7 +1,7 @@
 import { FirebaseInstance } from '../..';
 import { IRafflesControllerGQL, IRafflesInRedis } from '../../config/interfaces/IRaffles';
 import { IUser } from '../../config/interfaces/IUser';
-import { RaffleUtils } from '../../services/RafflesServices';
+import RaffleUtils from '../../services/RaffleServices/RaffleUtils';
 
 class RafflesControllerGQL implements IRafflesControllerGQL {
   async getAllRaffles(): Promise<IRafflesInRedis> {

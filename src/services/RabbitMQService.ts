@@ -155,11 +155,13 @@ export default class RabbitMQService {
     }
   }
 
-  async createQueue(queueName: TRabbitMQQueues | string, queueOptions: amqp.Options.AssertQueue = {}): Promise<void> {
+  async createQueue(queueName: TRabbitMQQueues | string): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
     }
+
+    const { queueOptions } = this.getRMQConfig(queueName);
 
     this.channel.assertQueue(queueName, queueOptions);
   }
@@ -173,32 +175,37 @@ export default class RabbitMQService {
     this.channel.deleteQueue(queueName);
   }
 
+  getRMQConfig(queueName: string): { queueOptions: amqp.Options.AssertQueue; messageOptions: amqp.Options.Publish } {
+    if (queueName === 'balanceUpdateQueue') {
+      return { queueOptions: { durable: true }, messageOptions: { persistent: true } };
+    }
+
+    if (queueName.includes('raffle:')) {
+      return { queueOptions: { durable: true }, messageOptions: { persistent: true } };
+    }
+
+    return { queueOptions: {}, messageOptions: {} };
+  }
+
   async sendMessage(queueName: TRabbitMQQueues | string, message: any): Promise<void> {
     await this.ensureChannel();
     if (!this.channel) {
       throw new Error('Channel unreached.');
     }
 
+    const { messageOptions, queueOptions } = this.getRMQConfig(queueName);
+
     const messageToJSON = JSON.stringify(message);
-
-    const queueOptions: amqp.Options.AssertQueue = {};
-    if (queueName === 'balanceUpdateQueue') {
-      queueOptions['durable'] = true;
-    }
-
-    const messageOptions: amqp.Options.Publish = {};
-    if (queueName === 'balanceUpdateQueue') {
-      messageOptions['persistent'] = true;
-    }
 
     // Enviar mensagem para a fila
     this.channel.assertQueue(queueName, queueOptions);
     this.channel.sendToQueue(queueName, Buffer.from(messageToJSON), messageOptions);
   }
 
-  async sendRPCMessage<Message, DataReturned>(
+  /* DataReturned refers to the data the callback function will return */
+  async sendRPCMessage<DataReturned>(
     queueName: TRabbitMQQueues | string,
-    message: Message,
+    message: any,
   ): Promise<IRPCResponse<DataReturned>> {
     await this.ensureChannel();
     if (!this.channel) {
@@ -261,10 +268,7 @@ export default class RabbitMQService {
       throw new Error('Channel unreached.');
     }
 
-    const queueOptions: amqp.Options.AssertQueue = {};
-    if (queueName === 'balanceUpdateQueue') {
-      queueOptions['durable'] = true;
-    }
+    const { queueOptions } = this.getRMQConfig(queueName);
 
     this.channel.prefetch(1);
     this.channel.assertQueue(queueName, queueOptions);

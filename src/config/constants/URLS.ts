@@ -2,6 +2,8 @@ import ENVIRONMENT from './ENVIRONMENT';
 
 const PROTOCOL = ENVIRONMENT.HTTPS ? 'https://' : 'http://';
 
+const DOMAIN = ENVIRONMENT.DOMAIN;
+
 /* __SERVER__ */
 /* https://serverdomain.com OU http://localhost */
 const SERVER_URL = `${PROTOCOL}${ENVIRONMENT.SERVER_SUBDOMAIN_DOMAIN}`;
@@ -80,6 +82,7 @@ const URLS = {
     API_URL,
     CLIENT_FULL_URL,
     SERVER_FULL_URL,
+    DOMAIN,
   },
   ENDPOINTS: API_ENDPOINTS,
 };

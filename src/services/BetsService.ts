@@ -3,7 +3,7 @@ import { TDBGamesCollections } from '../config/interfaces/IFirebase';
 import { IUser } from '../config/interfaces/IUser';
 
 class BetsService {
-  async makeBetObjToFrontEnd(betInDb: IBetInDB, betId: string): Promise<IBetToFrontEnd> {
+  async filterBetObjToFrontend(betInDb: IBetInDB, betId: string): Promise<IBetToFrontEnd> {
     const { gameRef, userRef, amountBet, createdAt, info, prize } = betInDb;
 
     const gameId = gameRef.id;

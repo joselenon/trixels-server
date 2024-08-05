@@ -85,8 +85,11 @@ class BalanceUpdateService {
     }
   }
 
-  async sendBalanceUpdateRPCMessage<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
-    return await RabbitMQInstance.sendRPCMessage(this.balanceUpdateQueueRedisKey, balanceUpdatePayload);
+  async sendBalanceUpdateRPCMessage<Env, RPCDataReturned>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {
+    return await RabbitMQInstance.sendRPCMessage<RPCDataReturned>(
+      this.balanceUpdateQueueRedisKey,
+      balanceUpdatePayload,
+    );
   }
 
   async addToQueue<Env>(balanceUpdatePayload: IBalanceUpdateItemPayload<Env>) {

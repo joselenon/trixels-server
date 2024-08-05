@@ -5,12 +5,12 @@ import ENVIRONMENT from './config/constants/ENVIRONMENT';
 import AppService from './services/AppService';
 import FirestoreService from './services/FirestoreService';
 import RedisService from './services/RedisService';
-import { RaffleUtils } from './services/RafflesServices';
 import BalanceUpdateService from './services/BalanceUpdateService';
 import RabbitMQService from './services/RabbitMQService';
 import DepositService from './services/DepositService';
 import RegisterUserService from './services/UserServices/RegisterUserService';
 import UserCredentialsService from './services/UserServices/UserCredentialsService';
+import StartRafflesQueuesService from './services/RaffleServices/StartRafflesQueuesService';
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert(FirebaseCredentials),
@@ -34,7 +34,7 @@ async function init() {
   await BalanceUpdateService.processBalanceUpdateQueue();
   await DepositService.startRedeemRedemptionCodeQueue();
 
-  await RaffleUtils.startRafflesServices();
+  await StartRafflesQueuesService();
   await AppService.initialize();
 
   return { FirebaseInstance, RedisInstance };

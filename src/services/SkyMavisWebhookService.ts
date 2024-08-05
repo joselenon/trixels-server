@@ -169,7 +169,6 @@ class SkyMavisWebhookService {
     }
 
     let verifiedWalletOwnerId = await this.findVerifiedUser(fromAddress);
-    console.log('verifiedWalletOwnerId', verifiedWalletOwnerId);
 
     const checkForWalletVerification = await BalanceUpdateService.checkForWalletVerification({
       symbol,
@@ -177,7 +176,6 @@ class SkyMavisWebhookService {
       fromAddress,
     });
 
-    console.log('checkForWalletVerification', checkForWalletVerification);
     if (
       checkForWalletVerification.wasAVerification &&
       checkForWalletVerification.userIdRelatedToVerifiedAddress &&

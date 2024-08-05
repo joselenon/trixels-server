@@ -9,13 +9,13 @@ const ENVIRONMENT = {
   MODE: process.env.MODE as 'DEVELOPMENT' | 'PRODUCTION',
   HTTPS: process.env.HTTPS === 'true' ? true : false,
 
-  DOMAIN: process.env.DOMAIN,
+  DOMAIN: process.env.DOMAIN as string,
 
   SERVER_SUBDOMAIN_DOMAIN: process.env.SERVER_SUBDOMAIN_DOMAIN,
-  SERVER_PORT: process.env.SERVER_PORT || '4000',
+  SERVER_PORT: (process.env.SERVER_PORT || 4000) as number,
 
   CLIENT_SUBDOMAIN_DOMAIN: process.env.CLIENT_SUBDOMAIN_DOMAIN,
-  CLIENT_PORT: process.env.CLIENT_PORT || '3000',
+  CLIENT_PORT: (process.env.CLIENT_PORT || 3000) as number,
 
   REDIS_HOST: process.env.REDIS_HOST as string,
   REDIS_PORT: process.env.REDIS_PORT as string,

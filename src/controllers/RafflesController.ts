@@ -3,10 +3,11 @@ import { NextFunction, Request, Response } from 'express';
 import { responseBody } from '../helpers/responseHelpers';
 import JWTService from '../services/JWTService';
 import { IBuyRaffleTicketsPayload, IBuyRaffleTicketsPayloadRedis } from '../config/interfaces/IBet';
-import { CreateRaffle, RaffleUtils } from '../services/RafflesServices';
 import { IRaffleCreationPayload } from '../config/interfaces/IRaffleCreation';
 import { RabbitMQInstance } from '..';
 import PayloadValidator from '../services/PayloadValidator';
+import CreateRaffleService from '../services/RaffleServices/CreateRaffleService';
+import RaffleUtils from '../services/RaffleServices/RaffleUtils';
 
 class RafflesController {
   getAvailableItems(_: Request, res: Response, next: NextFunction) {
@@ -30,7 +31,7 @@ class RafflesController {
       const raffleCreationPayload = req.body as IRaffleCreationPayload;
       const validatedPayload = PayloadValidator.validateRaffleCreationPayload(raffleCreationPayload);
 
-      const raffleIdResponse = await new CreateRaffle({
+      const raffleIdResponse = await new CreateRaffleService({
         userDoc,
         raffleCreationPayload: validatedPayload,
       }).create();
