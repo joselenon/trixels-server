@@ -200,7 +200,7 @@ class AuthService {
         username: customFilteredUsername,
         password: null,
         avatar,
-        balance: 0,
+        balance: 10,
         email: {
           value: emailValue,
           verified: true,
