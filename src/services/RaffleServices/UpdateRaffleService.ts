@@ -38,10 +38,9 @@ export default class UpdateRaffleService {
     }
 
     for (const [index, winnerBet] of winnersBetsInfo.entries()) {
-      const prizesKeys = Object.keys(prizes);
       const { userId } = winnerBet.betRef.userRef;
 
-      const winnerBetPrize = prizes[prizesKeys[index]].totalValue;
+      const winnerBetPrize = prizes[index].totalValue;
       const betUpdatedObj: IBetToFrontEnd = { ...winnerBet.betRef, prize: winnerBetPrize };
       const { betId, prize } = betUpdatedObj;
 
