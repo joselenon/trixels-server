@@ -50,7 +50,7 @@ class RegisterUserService {
       username: customFilteredUsername,
       password: encryptedPassword,
       avatar: '',
-      balance: 0,
+      balance: 10,
       email: {
         value: '',
         verified: false,
