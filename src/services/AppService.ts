@@ -92,7 +92,7 @@ class AppService {
     this.setupEndpoints();
 
     this.wsServer.on('listening', () => console.log('Web-socket server started.'));
-    this.httpServer.listen(URLS.MAIN_URLS.SERVER_PORT, URLS.MAIN_URLS.DOMAIN, () =>
+    this.httpServer.listen(URLS.MAIN_URLS.SERVER_PORT, () =>
       console.log(`Server started, ${URLS.MAIN_URLS.SERVER_FULL_URL}`),
     );
   }
