@@ -1,9 +1,10 @@
 import { Server } from 'http';
+import URLS from '../../constants/URLS';
 
 const webSocketServerConfig = (httpServer: Server) => {
   return {
     server: httpServer,
-    path: '/api/graphql',
+    path: URLS.ENDPOINTS.GRAPHQL,
   };
 };
 
