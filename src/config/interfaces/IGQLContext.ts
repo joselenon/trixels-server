@@ -1,5 +1,5 @@
 import { IJWTService } from '../../services/JWTService';
-import { IRafflesControllerGQL } from './IRaffles';
+import { IRafflesControllerGQL } from './RaffleInterfaces/IRaffles';
 import { IUserControllerGQL } from './IUser';
 
 export default interface IGQLContext {

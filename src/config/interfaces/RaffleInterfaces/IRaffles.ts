@@ -1,22 +1,20 @@
-import { IBetToFrontEnd } from './IBet';
+import { IBetToFrontEnd } from '../IBet';
 
 export interface IRafflesControllerGQL {
-  getAllRaffles(): Promise<{
+  getRafflesCache(): Promise<{
     activeRaffles: IRaffleToFrontEnd[];
     endedRaffles: IRaffleToFrontEnd[];
   }>;
 }
 
-export type TRafflePrizeX = { prizeId: string; quantity: number; totalValue: number };
+export type TPrizeItem = { itemId: string; quantity: number; totalValue: number };
 
 export type TRaffleWinnerPrizes = {
   totalValue: number;
-  info: { [prizeX: string]: TRafflePrizeX };
+  items: TPrizeItem[];
 };
 
-export type TRaffleWinnersPrizes = {
-  [winnerX: string]: TRaffleWinnerPrizes;
-};
+export type TRaffleWinnersPrizes = TRaffleWinnerPrizes[];
 
 export type TWinnerBetInRedis = {
   betRef: IBetToFrontEnd;
@@ -56,7 +54,7 @@ export interface IRaffleInDb {
   };
 }
 
-// ! TIMESTAMPS ARE STRING BECAUSE OF GRAPHQL (ERRORS WITH BIG NUMBERS)
+// ! TIMESTAMPS ARE STRING BECAUSE OF GRAPHQL (errorS WITH BIG NUMBERS)
 export interface IRaffleToFrontEnd {
   gameId: string;
   createdAt: string;

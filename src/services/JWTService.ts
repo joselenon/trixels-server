@@ -33,9 +33,9 @@ class JWTService implements IJWTService {
       this.validateJWTPayload(decoded);
 
       return decoded;
-    } catch (err) {
-      console.error('Failed to decode JWT:', err);
-      throw err;
+    } catch (error) {
+      console.error('Failed to decode JWT:', error);
+      throw error;
     }
   }
 
@@ -73,10 +73,9 @@ class JWTService implements IJWTService {
       }
 
       return { userJWTPayload: inferredValidation, userDoc };
-    } catch (err: any) {
-      const error = err as Error;
+    } catch (error: any) {
       if (error.name === 'TokenExpiredError') throw new JWTExpiredError();
-      throw err;
+      throw error;
     }
   }
 }

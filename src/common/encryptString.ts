@@ -6,14 +6,14 @@ async function encryptString(textToEncrypt: string): Promise<string> {
 
   return new Promise((resolve, reject) => {
     // Gere um salt para adicionar à senha
-    bcrypt.genSalt(saltRounds, (err, salt) => {
-      if (err) {
-        reject(new UnknownError(`BCRYPT: ERROR GENERATING SALT: ${err}`));
+    bcrypt.genSalt(saltRounds, (error, salt) => {
+      if (error) {
+        reject(new UnknownError(`BCRYPT: ERROR GENERATING SALT: ${error}`));
       } else {
         // Usando salt para criação do hash
-        bcrypt.hash(textToEncrypt, salt, (err, hash) => {
-          if (err) {
-            reject(new UnknownError(`BCRYPT ERROR: ${err}`));
+        bcrypt.hash(textToEncrypt, salt, (error, hash) => {
+          if (error) {
+            reject(new UnknownError(`BCRYPT ERROR: ${error}`));
           } else {
             // Resolve a Promise com o hash do texto
             resolve(hash);

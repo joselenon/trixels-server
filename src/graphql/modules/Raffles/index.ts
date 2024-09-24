@@ -9,11 +9,11 @@ const resolvers = {
       try {
         const { RafflesControllerGQL } = context;
 
-        const allRaffles = await RafflesControllerGQL.getAllRaffles();
+        const allRaffles = await RafflesControllerGQL.getRafflesCache();
 
         return responseBody({ success: true, type: 'GET_LIVE_RAFFLES', message: 'GET_MSG', data: allRaffles });
-      } catch (err) {
-        validateAndCaptureError(err);
+      } catch (error) {
+        validateAndCaptureError(error);
       }
     },
   },
@@ -23,8 +23,8 @@ const resolvers = {
       subscribe: async (/* _: any, args: any, context: IGQLContext */) => {
         try {
           return PubSubEventManager.getPSub().asyncIterator([`${PUBSUB_EVENTS.GET_LIVE_RAFFLES.triggerName}`]);
-        } catch (err) {
-          validateAndCaptureError(err);
+        } catch (error) {
+          validateAndCaptureError(error);
         }
       },
     },

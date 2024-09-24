@@ -3,12 +3,12 @@ import { GraphQLFormattedError } from 'graphql/error';
 import { RESPONSE_CONFIG } from '../constants/RESPONSES';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function (err: GraphQLFormattedError) {
-  if (err.extensions) {
-    const errorStacktraces = err.extensions.stacktrace as string[];
+export default function (error: GraphQLFormattedError) {
+  if (error.extensions) {
+    const errorStacktraces = error.extensions.stacktrace as string[];
     if (errorStacktraces[0].includes('Client Error')) {
       return {
-        message: err.message,
+        message: error.message,
         extensions: {
           code: errorStacktraces[0],
         },

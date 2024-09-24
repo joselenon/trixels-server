@@ -8,7 +8,7 @@ import {
   TDBCollections,
 } from '../config/interfaces/IFirebase';
 import { DocumentNotFoundError, UnexpectedDatabaseError } from '../config/errors/classes/SystemErrors';
-import { firebaseApp } from '..';
+import { firebaseApp } from '../config/app/FirebaseCredentials';
 
 export default class FirestoreService {
   public firestore: FirebaseFirestore.Firestore;
@@ -24,8 +24,8 @@ export default class FirestoreService {
     try {
       const docRef = await this.firestore.collection(collection).add(payload);
       return { docId: docRef.id, success: true };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -41,8 +41,8 @@ export default class FirestoreService {
       await docRef.set(payload);
 
       return docRef.id;
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -61,8 +61,8 @@ export default class FirestoreService {
       const docData = docSnapshot.data();
       await docRef.update(payload);
       return { docId, docRef, docData: { ...docData, ...payload } as R };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -82,8 +82,8 @@ export default class FirestoreService {
         docRef,
         docData: docSnapshotData as D,
       };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -96,8 +96,8 @@ export default class FirestoreService {
 
       const docData = docSnapshot.data();
       return { docId, docRef, docData: { ...docData } as R };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -121,8 +121,8 @@ export default class FirestoreService {
         docRef,
         docData: { ...docSnapshotData } as R,
       };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -147,8 +147,8 @@ export default class FirestoreService {
       });
 
       return { documents };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -165,8 +165,8 @@ export default class FirestoreService {
         return { docId: doc.id, docData: doc.data() as R };
       });
       return { result: collectionDocsData };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -195,8 +195,8 @@ export default class FirestoreService {
           [arrayField]: admin.firestore.FieldValue.arrayUnion(value),
         });
       });
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -205,8 +205,8 @@ export default class FirestoreService {
   ): Promise<admin.firestore.CollectionReference<admin.firestore.DocumentData>> {
     try {
       return this.firestore.collection(collection);
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 
@@ -254,8 +254,8 @@ export default class FirestoreService {
       const hasMore = snapshot.docs.length > chunkSize;
 
       return { documents, hasMore };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 }

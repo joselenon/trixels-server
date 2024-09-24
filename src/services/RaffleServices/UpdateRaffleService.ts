@@ -2,14 +2,14 @@ import { FirebaseInstance, RabbitMQInstance } from '../..';
 import { TotalTimeToRoll } from '../../config/app/games/RaffleConfig';
 import { UnknownError } from '../../config/errors/classes/SystemErrors';
 import { IBetToFrontEnd } from '../../config/interfaces/IBet';
-import { IRaffleInDb, IRaffleToFrontEnd } from '../../config/interfaces/IRaffles';
+import { IRaffleInDb, IRaffleToFrontEnd } from '../../config/interfaces/RaffleInterfaces/IRaffles';
 import BalanceUpdateService, { IReceiveActionEnv } from '../BalanceUpdateService';
 import RaffleUtils from './RaffleUtils';
 import DrawWinnerService from './DrawWinnerService';
 
 export default class UpdateRaffleService {
   private gameId: string;
-  private raffleInRedis: IRaffleToFrontEnd = {} as IRaffleToFrontEnd;
+  private raffleCache: IRaffleToFrontEnd = {} as IRaffleToFrontEnd;
   private raffleInDb: IRaffleInDb = {} as IRaffleInDb;
 
   constructor(gameId: string) {
@@ -17,7 +17,7 @@ export default class UpdateRaffleService {
   }
 
   private async loadRaffle(findIn: 'active' | 'ended') {
-    this.raffleInRedis = await RaffleUtils.getSpecificRaffleInRedis({
+    this.raffleCache = await RaffleUtils.getSpecificRaffleCache({
       gameId: this.gameId,
       findIn,
       reqType: 'FINISH_RAFFLE',
@@ -31,7 +31,7 @@ export default class UpdateRaffleService {
 
   async payWinners() {
     const { prizes } = this.raffleInDb.info;
-    const { winnersBetsInfo } = this.raffleInRedis.info;
+    const { winnersBetsInfo } = this.raffleCache.info;
 
     if (!winnersBetsInfo || winnersBetsInfo.length <= 0) {
       throw new UnknownError("Something went wrong cause winners weren't drawn.");
@@ -63,14 +63,14 @@ export default class UpdateRaffleService {
     const nowTime = Date.now();
     await this.loadRaffle('active');
 
-    const { gameId, info } = this.raffleInRedis;
+    const { gameId, info } = this.raffleCache;
     const { prizes, totalTickets } = info;
     const rafflePrizesToJS = JSON.parse(prizes);
 
     const drawnNumbersInfo = await new DrawWinnerService(rafflePrizesToJS, totalTickets).startDraw();
 
     const { winnersBetsObjToRedis, winnersBetsObjToDB } = await RaffleUtils.getWinnersBetsObjs(
-      this.raffleInRedis.info.bets,
+      this.raffleCache.info.bets,
       drawnNumbersInfo,
     );
 
@@ -89,21 +89,21 @@ export default class UpdateRaffleService {
       finishedAt: nowTime,
     };
 
-    const raffleInRedis = await RaffleUtils.getSpecificRaffleInRedis({
+    const raffleCache = await RaffleUtils.getSpecificRaffleCache({
       gameId,
       findIn: 'active',
       reqType: 'FINISH_RAFFLE',
     });
     const raffleObjToRedis: IRaffleToFrontEnd = {
-      ...raffleInRedis,
+      ...raffleCache,
       ...raffleObjBase,
-      info: { ...raffleInRedis.info, winnersBetsInfo: winnersBetsObjToRedis },
+      info: { ...raffleCache.info, winnersBetsInfo: winnersBetsObjToRedis },
       finishedAt: nowTime.toString(),
     };
 
     await FirebaseInstance.updateDocument('raffles', gameId, raffleObjToDb);
 
-    await RaffleUtils.updateSpecificRaffleInRedis(gameId, raffleObjToRedis, 'ended');
+    await RaffleUtils.updateSpecificRaffleCache(gameId, raffleObjToRedis, 'ended');
 
     await this.loadRaffle('ended');
     await this.payWinners();

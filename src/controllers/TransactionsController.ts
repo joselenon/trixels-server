@@ -31,8 +31,8 @@ class TransactionsController {
         .json(
           responseBody({ success: true, type: 'GET_USER_TRANSACTIONS', message: 'GET_MSG', data: userTransactions }),
         );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   }
 }

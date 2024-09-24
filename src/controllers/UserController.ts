@@ -46,8 +46,8 @@ class UserController {
         .json(
           responseBody({ success: true, type: 'REGISTER_USER', message: 'REGISTERED_IN', data: { userCredentials } }),
         );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -77,8 +77,8 @@ class UserController {
       res
         .status(200)
         .json(responseBody({ success: true, type: 'LOG_USER', message: 'LOGGED_IN', data: { userCredentials } }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -87,8 +87,8 @@ class UserController {
       res.clearCookie(CookiesConfig.RefreshTokenCookie.key, CookiesConfig.RefreshTokenCookie.config);
       res.clearCookie(CookiesConfig.JWTCookie.key, CookiesConfig.JWTCookie.config);
       res.status(200).json(responseBody({ success: true, type: 'LOG_USER', message: 'LOGGED_IN', data: null }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -113,8 +113,8 @@ class UserController {
           data: userCredentials,
         }),
       );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -131,7 +131,7 @@ class UserController {
         });
 
         requesterUsername = userJWTPayload?.username;
-      } catch (err) {
+      } catch (error) {
         /* empty */
       }
 
@@ -149,8 +149,8 @@ class UserController {
           data: userCredentials,
         }),
       );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -182,8 +182,8 @@ class UserController {
           message: 'UPDATE_MSG',
         }),
       );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -208,8 +208,8 @@ class UserController {
           data: response,
         }),
       );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -226,8 +226,8 @@ class UserController {
       res
         .status(200)
         .json(responseBody({ success: true, type: 'REFRESH_ACCESS_TOKEN', message: 'GET_MSG', data: null }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -243,8 +243,8 @@ class UserController {
       res
         .status(200)
         .json(responseBody({ success: true, type: 'REFRESH_ACCESS_TOKEN', message: 'GET_MSG', data: null }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   };
 }

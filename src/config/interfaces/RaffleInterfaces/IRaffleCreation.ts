@@ -1,12 +1,10 @@
-export type TRaffleCreationPrizeX = { prizeId: string; quantity: number };
+export type TRaffleCreationItem = { itemId: string; quantity: number };
 
 export type TRaffleCreationWinnerPrizes = {
-  info: { [prizeX: string]: TRaffleCreationPrizeX };
+  items: TRaffleCreationItem[];
 };
 
-export type TRaffleCreationPrizesWinners = {
-  [winnerX: string]: TRaffleCreationWinnerPrizes;
-};
+export type TRaffleCreationItemsWinners = TRaffleCreationWinnerPrizes[];
 
 export interface IRaffleCreationPayload {
   totalTickets: number;
@@ -16,7 +14,7 @@ export interface IRaffleCreationPayload {
     mode: 'public' | 'guildMembers';
     type: 'public' | 'private';
   };
-  prizes: TRaffleCreationPrizesWinners;
+  prizes: TRaffleCreationItemsWinners;
   request: string;
   maxTicketsPerUser: number | null;
 }

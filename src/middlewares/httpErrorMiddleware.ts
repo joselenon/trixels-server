@@ -5,11 +5,11 @@ import { errorResponse } from '../helpers/responseHelpers';
 import { ClientError } from '../config/errors/classes/ClientErrors';
 import { RESPONSE_CONFIG } from '../config/constants/RESPONSES';
 
-const httpErrorMiddleware = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  Sentry.captureException(err); // Captures errors to send to Sentry
+const httpErrorMiddleware = (error: Error, req: Request, res: Response, next: NextFunction) => {
+  Sentry.captureException(error); // Captures errors to send to Sentry
 
-  if (err instanceof ClientError) {
-    res.status(err.status).json(errorResponse(err.message));
+  if (error instanceof ClientError) {
+    res.status(error.status).json(errorResponse(error.message));
     return next();
   }
 

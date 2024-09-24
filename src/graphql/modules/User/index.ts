@@ -17,8 +17,8 @@ const resolvers = {
         if (!userData) throw new DocumentNotFoundError();
 
         return responseBody({ success: true, type: 'GET_USER_INFO', message: 'GET_MSG', data: userData.docData });
-      } catch (err) {
-        validateAndCaptureError(err);
+      } catch (error) {
+        validateAndCaptureError(error);
       }
     },
 
@@ -37,8 +37,8 @@ const resolvers = {
         );
 
         return responseBody({ success: true, type: 'GET_BALANCE', message: 'GET_MSG', data: balance });
-      } catch (err) {
-        validateAndCaptureError(err);
+      } catch (error) {
+        validateAndCaptureError(error);
       }
     },
   },
@@ -53,8 +53,8 @@ const resolvers = {
           return PubSubEventManager.getPSub().asyncIterator([
             `${PUBSUB_EVENTS.GET_LIVE_BALANCE.triggerName}:${userDoc.docId}`,
           ]);
-        } catch (err) {
-          validateAndCaptureError(err);
+        } catch (error) {
+          validateAndCaptureError(error);
         }
       },
     },
@@ -68,8 +68,8 @@ const resolvers = {
           return PubSubEventManager.getPSub().asyncIterator([
             `${PUBSUB_EVENTS.GET_LIVE_MESSAGES.triggerName}:${userDoc.docId}`,
           ]);
-        } catch (err) {
-          validateAndCaptureError(err);
+        } catch (error) {
+          validateAndCaptureError(error);
         }
       },
     },

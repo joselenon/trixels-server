@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/node';
 
 import { ClientError, GenericError } from '../config/errors/classes/ClientErrors';
 
-const validateAndCaptureError = (err: unknown) => {
-  if (err instanceof ClientError) throw err;
-  Sentry.captureException(err);
+const validateAndCaptureError = (error: unknown) => {
+  if (error instanceof ClientError) throw error;
+  Sentry.captureException(error);
   throw new GenericError();
 };
 

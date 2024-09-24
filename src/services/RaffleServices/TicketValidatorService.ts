@@ -6,9 +6,9 @@ import {
   TicketBuyLimitReachedError,
 } from '../../config/errors/classes/ClientErrors';
 import { IBuyRaffleTicketsPayloadRedis } from '../../config/interfaces/IBet';
-import { IRaffleToFrontEnd } from '../../config/interfaces/IRaffles';
+import { IRaffleToFrontEnd } from '../../config/interfaces/RaffleInterfaces/IRaffles';
 
-export default class RaffleBetValidatorService {
+export default class TicketValidatorService {
   userId: string;
   buyRaffleTicketPayload: IBuyRaffleTicketsPayloadRedis;
   raffle: IRaffleToFrontEnd;
@@ -19,18 +19,19 @@ export default class RaffleBetValidatorService {
     this.raffle = raffle;
   }
 
-  private checkGameStatus() {
-    const { createdAt } = this.buyRaffleTicketPayload;
-    const { finishedAt } = this.raffle;
+  private validateGameStatus() {
+    const { createdAt: betCreatedAt } = this.buyRaffleTicketPayload;
+    const { finishedAt: raffleFinishedAt } = this.raffle;
 
-    if (finishedAt) {
-      const finishedAtToInt = parseInt(finishedAt);
-      if (finishedAtToInt < createdAt)
+    if (raffleFinishedAt) {
+      const raffleFinishedAtInt = parseInt(raffleFinishedAt);
+      if (betCreatedAt > raffleFinishedAtInt) {
         throw new GameAlreadyFinishedError({ reqType: 'BUY_RAFFLE_TICKET', userId: this.userId });
+      }
     }
   }
 
-  private checkTicketsAvailability() {
+  private validateTicketsAvailability() {
     const { info: buyRaffleTicketPayloadInfo } = this.buyRaffleTicketPayload;
     const { randomTicket } = buyRaffleTicketPayloadInfo;
 
@@ -48,7 +49,7 @@ export default class RaffleBetValidatorService {
     }
   }
 
-  private validateTickets() {
+  private validateTicketsAmount() {
     const { bets, maxTicketsPerUser } = this.raffle.info;
     const { ticketNumbers } = this.buyRaffleTicketPayload.info;
 
@@ -64,12 +65,9 @@ export default class RaffleBetValidatorService {
     }
   }
 
-  public firstValidation() {
-    this.checkGameStatus();
-    this.validateTickets();
-  }
-
-  public finalValidation() {
-    this.checkTicketsAvailability();
+  public validate() {
+    this.validateGameStatus();
+    this.validateTicketsAmount();
+    this.validateTicketsAvailability();
   }
 }

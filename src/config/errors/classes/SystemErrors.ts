@@ -1,133 +1,111 @@
 import * as Sentry from '@sentry/node';
-import { RESPONSE_CONFIG } from '../../constants/RESPONSES';
 
 export abstract class SystemError extends Error {
-  constructor(message: string, type: string) {
+  constructor(message: string | undefined = undefined, type: string) {
     super(message);
     this.name = `System Error - ${type}`;
     Sentry.captureException(this, { tags: { type } });
   }
 }
 
-export abstract class DatabaseError extends SystemError {
-  constructor(message: string, type: string = RESPONSE_CONFIG.ERROR.NAMES.DatabaseError) {
-    super(message, type);
-  }
-}
-
 export class UnavailableAuthMethod extends SystemError {
-  constructor(
-    message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.UNAVAILABLE_AUTH_METHOD,
-    type: string = RESPONSE_CONFIG.ERROR.NAMES.UnavailableAuthMethod,
-  ) {
-    super(message, type);
-    this.name = 'UnavailableAuthMethod';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'UnavailableAuthMethod');
   }
 }
 
-export class UnexpectedDatabaseError extends DatabaseError {
-  constructor(message: string, type: string = RESPONSE_CONFIG.ERROR.NAMES.UnexpectedDatabaseError) {
-    super(message, type);
-    this.name = 'UnexpectedDatabaseError';
+export class UnexpectedDatabaseError extends SystemError {
+  constructor(message: string | undefined = undefined) {
+    super(message, 'UnexpectedDatabaseError');
   }
 }
 
-export class DocumentNotFoundError extends DatabaseError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.DOCUMENT_NOT_IN_DB_MSG) {
-    super(message);
-    this.name = 'DocumentNotFoundError';
+export class DocumentNotFoundError extends SystemError {
+  constructor(message: string | undefined = undefined) {
+    super(message, 'DocumentNotFoundError');
   }
 }
 
 export class InvalidPayloadError extends SystemError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.INVALID_PAYLOAD) {
-    super(message, RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.INVALID_PAYLOAD);
-    this.name = 'InvalidPayloadError';
-  }
-}
-
-export class RedisError extends SystemError {
-  constructor(message: string) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.RedisError);
-    this.name = 'RedisError';
-  }
-}
-
-export class YoutubeAPIError extends SystemError {
-  constructor(message: string) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.YoutubeAPIError);
-    this.name = 'YoutubeAPIError';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'InvalidPayloadError');
   }
 }
 
 export class RegisterError extends SystemError {
-  constructor(message: string) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.RegisterError);
-    this.name = 'RegisterError';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'RegisterError');
   }
 }
 
 export class EnvVariablesMissingError extends SystemError {
-  constructor(variables: string[], message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.ENV_VARIABLES_MISSING) {
-    super(`${message}${variables.join(', ')}`, RESPONSE_CONFIG.ERROR.NAMES.EnvVariablesMissingError);
-    this.name = 'EnvVariablesMissingError';
+  constructor(variables: string[]) {
+    super(`You forgot some environment variables: ${variables.join(', ')}`, 'EnvVariablesMissingError');
   }
 }
 
 export class UnknownError extends SystemError {
   constructor(message: string) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.UnknownError);
-    this.name = 'UnknownError';
+    super(message, 'UnknownError');
   }
 }
 
 export class ForgedWebhookError extends SystemError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.FORGED_WEBHOOK) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.ForgedWebhookError);
-    this.name = 'ForgedWebhookError';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'ForgedWebhookError');
   }
 }
 
 export class CreateRaffleUnexpectedError extends SystemError {
-  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.CREATE_RAFFLE) {
-    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.NAMES.CreateRaffleUnexpectedError);
-    this.name = 'CreateRaffleUnexpectedError';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'CreateRaffleUnexpectedError');
   }
 }
 
 export class RaffleLostError extends SystemError {
-  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.RAFFLE_LOST) {
-    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.NAMES.RaffleLostError);
-    this.name = 'RaffleLostError';
+  constructor(message: string | undefined = undefined) {
+    super(message, 'RaffleLostError');
   }
 }
 
 export class InvalidJWTError extends SystemError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.INVALID_JWT) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.InvalidJWTError);
+  constructor(message: string | undefined = undefined) {
+    super(message, 'InvalidJWTError');
   }
 }
 
 export class GoogleOAuthSystemError extends SystemError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.GOOGLE_OAUTH_SYSTEM) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.GoogleOAuthSystemError);
+  constructor(message: string | undefined = undefined) {
+    super(message, 'GoogleOAuthSystemError');
   }
 }
 
 export class SuspiciousAuthError extends SystemError {
-  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.SUSPICIOUS_AUTH) {
-    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.NAMES.SuspiciousAuthError);
+  constructor(message: string | undefined = undefined) {
+    super(message, 'SuspiciousAuthError');
   }
 }
 
 export class InvalidRefreshToken extends SystemError {
-  constructor(message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.AUTH_MSG) {
-    super(message, RESPONSE_CONFIG.ERROR.NAMES.InvalidRefreshToken);
+  constructor(message: string | undefined = undefined) {
+    super(message, 'InvalidRefreshToken');
   }
 }
 
 export class BlacklistedTokenError extends SystemError {
-  constructor(payload: string, message: string = RESPONSE_CONFIG.ERROR.SYSTEM_ERROR_MSGS.BLACKLISTED_TOKEN) {
-    super(`${message} - ${payload}`, RESPONSE_CONFIG.ERROR.NAMES.BlacklistedTokenError);
+  constructor(message: string | undefined = undefined) {
+    super(message, 'BlacklistedTokenError');
+  }
+}
+
+export class RaffleNotFound extends SystemError {
+  constructor(message: string | undefined = undefined) {
+    super(message, 'RaffleNotFound');
+  }
+}
+
+export class RafflesNotSync extends SystemError {
+  constructor(message: string | undefined = undefined) {
+    super(message, 'RafflesNotSync');
   }
 }

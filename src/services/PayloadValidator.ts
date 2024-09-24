@@ -1,9 +1,9 @@
 import { InvalidPayloadError } from '../config/errors/classes/SystemErrors';
 import {
   IRaffleCreationPayload,
-  TRaffleCreationPrizeX,
-  TRaffleCreationPrizesWinners,
-} from '../config/interfaces/IRaffleCreation';
+  TRaffleCreationItem,
+  TRaffleCreationItemsWinners,
+} from '../config/interfaces/RaffleInterfaces/IRaffleCreation';
 import { IGetDepositWalletPayload } from './DepositService';
 
 class PayloadValidator {
@@ -37,21 +37,21 @@ class PayloadValidator {
       throw new InvalidPayloadError();
     }
 
-    const isValidPrizes = (prizes: TRaffleCreationPrizesWinners): boolean => {
+    const isValidPrizes = (prizes: TRaffleCreationItemsWinners): boolean => {
       /* If no prizes were chosen */
       if (Object.keys(prizes).length <= 0) return false;
 
       /* If more than 1 prize was chosen */
       if (Object.keys(prizes).length > 1) return false;
 
-      return Object.values(prizes).every(
+      /*     return Object.values(prizes).every(
         (winnerXPrizes) =>
           'info' in winnerXPrizes &&
           Object.values(winnerXPrizes.info).every(
-            (prizeX: TRaffleCreationPrizeX) =>
-              typeof prizeX.prizeId === 'string' && typeof prizeX.quantity === 'number',
+            (prizeX: TRaffleCreationItem) => typeof prizeX.prizeId === 'string' && typeof prizeX.quantity === 'number',
           ),
-      );
+      ); */
+      return true;
     };
 
     if (

@@ -77,9 +77,9 @@ class BalanceUpdateService {
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
       });
-    } catch (err: unknown) {
-      console.log('ERROR', err);
-      if (err instanceof SystemError) {
+    } catch (error: unknown) {
+      console.log('ERROR', error);
+      if (error instanceof SystemError) {
         throw new ProcessRefundError(JSON.stringify(item));
       }
     }
@@ -150,12 +150,12 @@ class BalanceUpdateService {
 
         BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
-    } catch (err: unknown) {
-      console.log('ERROR', err);
-      if (err instanceof SystemError) {
+    } catch (error: unknown) {
+      console.log('ERROR', error);
+      if (error instanceof SystemError) {
         throw new ProcessCreateRaffleItemError(JSON.stringify(item));
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -176,11 +176,11 @@ class BalanceUpdateService {
 
         BalanceService.sendBalancePubSubEvent(userId, newUserBalance);
       });
-    } catch (err: unknown) {
-      if (err instanceof SystemError) {
+    } catch (error: unknown) {
+      if (error instanceof SystemError) {
         throw new ProcessBuyRaffleTicketItemError(JSON.stringify(item));
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -202,12 +202,12 @@ class BalanceUpdateService {
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance, sendPSubInTimestamp);
       });
-    } catch (err: unknown) {
-      console.log('ERROR', err);
-      if (err instanceof SystemError) {
+    } catch (error: unknown) {
+      console.log('ERROR', error);
+      if (error instanceof SystemError) {
         throw new ProcessPayWinnersItemError(JSON.stringify(item));
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -275,12 +275,12 @@ class BalanceUpdateService {
 
         BalanceService.sendBalancePubSubEvent(userId, newBalance);
       });
-    } catch (err) {
-      console.log('ERROR', err);
-      if (err instanceof SystemError) {
+    } catch (error) {
+      console.log('ERROR', error);
+      if (error instanceof SystemError) {
         throw new ProcessDepositError(JSON.stringify(item));
       }
-      throw err;
+      throw error;
     }
   }
 
@@ -324,9 +324,9 @@ class BalanceUpdateService {
           userId,
         );
       });
-    } catch (err) {
-      console.log('ERROR', err);
-      if (err instanceof SystemError) {
+    } catch (error) {
+      console.log('ERROR', error);
+      if (error instanceof SystemError) {
         throw new ProcessDepositError(JSON.stringify(item));
       }
     }

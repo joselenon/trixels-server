@@ -1,7 +1,7 @@
 import { QuantityExceedsAvailableTicketsError } from '../../config/errors/classes/ClientErrors';
 import { InvalidPayloadError } from '../../config/errors/classes/SystemErrors';
 import { IBuyRaffleTicketsPayloadRedis } from '../../config/interfaces/IBet';
-import { IRaffleToFrontEnd } from '../../config/interfaces/IRaffles';
+import { IRaffleToFrontEnd } from '../../config/interfaces/RaffleInterfaces/IRaffles';
 
 class TicketNumbersService {
   userId: string;
@@ -42,21 +42,23 @@ class TicketNumbersService {
     return getRandomNumbersFromArray(availableTicketNumbers, quantityToGen);
   }
 
-  getTicketNumbersFiltered(buyRaffleTicketInfoPayload: IBuyRaffleTicketsPayloadRedis['info']) {
+  getTicketNumbersFiltered(buyRaffleTicketInfoPayload: IBuyRaffleTicketsPayloadRedis['info']): {
+    ticketNumbersFiltered: number[];
+  } {
     const { bets, totalTickets } = this.raffleInfo;
     const { randomTicket, ticketNumbers } = buyRaffleTicketInfoPayload;
 
     if (randomTicket) {
       const availableTicketNumbers = this.getAvailableTicketNumbers(bets, totalTickets);
-      if (availableTicketNumbers.length < 1) {
+      if (!availableTicketNumbers.length) {
         throw new QuantityExceedsAvailableTicketsError({ reqType: 'CREATE_RAFFLE', userId: this.userId });
       }
 
-      return this.genRandomTicketNumbers(availableTicketNumbers, 1);
+      return { ticketNumbersFiltered: this.genRandomTicketNumbers(availableTicketNumbers, 1) };
     }
 
-    if (!ticketNumbers || ticketNumbers.length <= 0) throw new InvalidPayloadError();
-    return ticketNumbers;
+    if (!ticketNumbers || !ticketNumbers.length) throw new InvalidPayloadError();
+    return { ticketNumbersFiltered: ticketNumbers };
   }
 }
 

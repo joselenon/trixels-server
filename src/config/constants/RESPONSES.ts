@@ -35,6 +35,7 @@ const RESPONSE_CONFIG = {
       TicketAlreadyTakenError: 'TicketAlreadyTakenError',
       QuantityExceedsAvailableTicketsError: 'QuantityExceedsAvailableTicketsError',
       TicketBuyLimitReachedError: 'TicketBuyLimitReachedError',
+      RaffleNotFound: 'RaffleNotFound',
 
       /* BALANCE UPDATE ERRORS */
       ProcessCreateRaffleItemError: 'ProcessCreateRaffleItemError',
@@ -64,6 +65,7 @@ const RESPONSE_CONFIG = {
       SuspiciousAuthError: 'SuspiciousAuthError',
       InvalidRefreshToken: 'InvalidRefreshToken',
       BlacklistedTokenError: 'BlacklistedTokenError',
+      UpdateRaffleCacheError: 'UpdateRaffleCacheError',
     },
 
     SYSTEM_ERROR_MSGS: {
@@ -75,6 +77,7 @@ const RESPONSE_CONFIG = {
       FORGED_WEBHOOK: 'Webhook forged',
       RAFFLE_LOST: 'System lost a specific raffle',
       CREATE_RAFFLE: 'Something went wrong creating a raffle',
+      RAFFLE_NOT_FOUND: 'Raffle not found',
       INVALID_JWT: 'INVALID_JWT',
       GOOGLE_OAUTH_SYSTEM: 'Something went wrong with GoogleOAuthSystem',
       SUSPICIOUS_AUTH: 'Something suspicious with user authentication',

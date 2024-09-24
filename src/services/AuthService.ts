@@ -91,12 +91,12 @@ class AuthService {
         await this.setTokenToBlacklist(lastAccessToken);
         return await this.genAccessToken(refreshToken, userId);
       }
-    } catch (err: unknown) {
-      if (err instanceof JWTExpiredError || err instanceof BlacklistedTokenError) {
+    } catch (error: unknown) {
+      if (error instanceof JWTExpiredError || error instanceof BlacklistedTokenError) {
         return await this.genAccessToken(refreshToken, userId);
       }
 
-      throw err;
+      throw error;
     }
   }
 
@@ -220,8 +220,8 @@ class AuthService {
 
       const { docId } = await FirebaseInstance.writeDocument('users', userInDbObj);
       return { userCredentials: userInDbObj, userCreatedId: docId };
-    } catch (err: any) {
-      throw new UnexpectedDatabaseError(err);
+    } catch (error: any) {
+      throw new UnexpectedDatabaseError(error);
     }
   }
 

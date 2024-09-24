@@ -82,7 +82,7 @@ class DepositService {
           'info.claims': admin.firestore.FieldValue.arrayUnion(userRef),
         });
 
-        const rpcResponse = await BalanceUpdateService.sendBalanceUpdateRPCMessage<IDepositEnv>({
+        const rpcResponse = await BalanceUpdateService.sendBalanceUpdateRPCMessage<IDepositEnv, null>({
           userId,
           type: 'deposit',
           env: {

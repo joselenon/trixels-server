@@ -1,7 +1,7 @@
 import { FirebaseInstance, RabbitMQInstance } from '../..';
 import { CreateRaffleUnexpectedError } from '../../config/errors/classes/SystemErrors';
-import { IRaffleInDb, IRaffleToFrontEnd } from '../../config/interfaces/IRaffles';
-import { IRaffleCreationPayload } from '../../config/interfaces/IRaffleCreation';
+import { IRaffleInDb, IRaffleToFrontEnd } from '../../config/interfaces/RaffleInterfaces/IRaffles';
+import { IRaffleCreationPayload } from '../../config/interfaces/RaffleInterfaces/IRaffleCreation';
 import formatIrrationalCryptoAmount from '../../common/formatIrrationalCryptoAmount';
 import BalanceUpdateService, { ISpendActionEnv } from '../BalanceUpdateService';
 import PubSubEventManager, { IPubSubCreateRaffleData } from '../PubSubEventManager';
@@ -41,12 +41,12 @@ export default class CreateRaffleService {
     this.maxTicketsPerUser = maxTicketsPerUser;
   }
 
-  async startRabbitMQQueue(newRaffleId: string, raffle: IRaffleToFrontEnd) {
+  async startRabbitMQQueue(newRaffleId: string) {
     const queueName = `raffle:${newRaffleId}`;
-    const ProcessTicketsBuyInstance = new ProcessRaffleQueueService(raffle);
 
-    await RabbitMQInstance.createQueue(queueName);
-    await RabbitMQInstance.consumeMessages(queueName, ProcessTicketsBuyInstance.start);
+    /*  await RabbitMQInstance.createQueue(queueName); */
+    const instance = new ProcessRaffleQueueService(newRaffleId);
+    await RabbitMQInstance.consumeMessages(queueName, instance.consume);
   }
 
   async checkAndSubtractCreatorBalance(raffleOwnerCost: number) {
@@ -123,7 +123,7 @@ export default class CreateRaffleService {
 
   async updateRedis(raffleId: string, raffleObjToDb: IRaffleInDb) {
     const raffleToFrontEndObj: IRaffleToFrontEnd = await RaffleUtils.filterRaffleToFrontEnd(raffleId, raffleObjToDb);
-    await RaffleUtils.updateSpecificRaffleInRedis(raffleId, raffleToFrontEndObj, 'active');
+    await RaffleUtils.updateSpecificRaffleCache(raffleId, raffleToFrontEndObj, 'active');
   }
 
   sendPSub(gameId: string) {
@@ -166,12 +166,11 @@ export default class CreateRaffleService {
         await this.createBet(transaction, newRaffleRef, raffleOwnerCost);
         await this.updateRedis(newRaffleId, raffleObjToDb);
 
-        const raffleInRedis = await RaffleUtils.filterRaffleToFrontEnd(newRaffleId, raffleObjToDb);
-        await this.startRabbitMQQueue(newRaffleId, raffleInRedis);
+        await this.startRabbitMQQueue(newRaffleId);
 
         this.sendPSub(newRaffleId);
       });
-    } catch (err) {
+    } catch (error) {
       throw new CreateRaffleUnexpectedError(JSON.stringify(payload));
     }
   }

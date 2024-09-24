@@ -1,11 +1,7 @@
 import { TRedisCommands, TRedisOptions } from '../../interfaces/IRedis';
-import { RedisError } from '../classes/SystemErrors';
+import { UnknownError } from '../classes/SystemErrors';
 
-async function retryOperation(
-  fn: () => any,
-  options: TRedisOptions | undefined,
-  operation: TRedisCommands,
-) {
+async function retryOperation(fn: () => any, options: TRedisOptions | undefined, operation: TRedisCommands) {
   const data = await fn();
   if (operation === 'get') {
     if (data && options?.isJSON) {
@@ -30,10 +26,10 @@ export default async function redisErrorHelper<T>(
 
   while (retries < maxRetries) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const data: T = await retryOperation(fn, options, operation).catch((err) => {
+    const data: T = await retryOperation(fn, options, operation).catch((error) => {
       if (data) return data;
       retries++;
-      if (retries === maxRetries) throw new RedisError(err);
+      if (retries === maxRetries) throw new UnknownError(error);
     });
     return data;
   }

@@ -8,4 +8,8 @@ const FirebaseCredentials: admin.ServiceAccount = {
   privateKey: ENVIRONMENT.FIREBASE_PRIVATE_KEY,
 };
 
-export default FirebaseCredentials;
+const firebaseApp = admin.initializeApp({
+  credential: admin.credential.cert(FirebaseCredentials),
+});
+
+export { firebaseApp };

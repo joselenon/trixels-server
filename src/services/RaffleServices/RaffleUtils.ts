@@ -1,30 +1,30 @@
 import { FirebaseInstance, RedisInstance } from '../..';
-import itemsInfo, { IItemsInfo } from '../../assets/itemsInfo';
+import itemsInfo from '../../assets/itemsInfo';
 import { getAllPrizesItems } from '../../common/raffleObjInteractions';
-import { GameAlreadyFinishedError, IPubSubConfig } from '../../config/errors/classes/ClientErrors';
-import { InvalidPayloadError, RaffleLostError, UnknownError } from '../../config/errors/classes/SystemErrors';
+import { IPubSubConfig } from '../../config/errors/classes/ClientErrors';
+import {
+  InvalidPayloadError,
+  RaffleNotFound,
+  RafflesNotSync,
+  UnknownError,
+} from '../../config/errors/classes/SystemErrors';
 import { IBetInDB, IBetToFrontEnd, IBuyRaffleTicketsPayload } from '../../config/interfaces/IBet';
 import {
   IRaffleInDb,
   IRaffleToFrontEnd,
-  TRaffleWinnersPrizes,
-  TRaffleWinnerPrizes,
   IRafflesInRedis,
   TWinnerBetsInRedis,
   TWinnerBetsInDb,
-} from '../../config/interfaces/IRaffles';
-import {
-  IRaffleCreationPayload,
-  TRaffleCreationPrizeX,
-  TRaffleCreationPrizesWinners,
-  TRaffleCreationWinnerPrizes,
-} from '../../config/interfaces/IRaffleCreation';
+} from '../../config/interfaces/RaffleInterfaces/IRaffles';
+import { GetPrizesValues } from './utils/RaffleUtils';
+import { IRaffleCreationPayload } from '../../config/interfaces/RaffleInterfaces/IRaffleCreation';
 import getRedisKeyHelper from '../../helpers/redisHelper';
 import formatIrrationalCryptoAmount from '../../common/formatIrrationalCryptoAmount';
 import calcWithDecimalsService from '../../common/calcWithDecimals';
 import PubSubEventManager from '../PubSubEventManager';
 import BetsService from '../BetsService';
 import { IUser } from '../../config/interfaces/IUser';
+import { SyncBetWithRaffleCacheError } from '../../config/errors/classes/RaffleErrors';
 
 type TDrawnNumbersInfo = {
   number: number;
@@ -83,56 +83,6 @@ class RaffleUtils {
     this.verifyItemsAvailability(allPrizesItems);
   }
 
-  static calculatePrizeX(prizeX: TRaffleCreationPrizeX): number {
-    /* Parar de chamar toda hora e colocar somente uma propriedade de availableItems na classe toda */
-    const availableItems = itemsInfo as IItemsInfo;
-
-    const { prizeId, quantity } = prizeX;
-    const itemValue = availableItems[prizeId].price;
-    return itemValue * quantity;
-  }
-
-  static getWinnerXPrize(info: TRaffleCreationWinnerPrizes['info']) {
-    const prizesWinnerXKeys = Object.keys(info);
-
-    const winnerXPrizeInfo: TRaffleWinnerPrizes['info'] = {};
-
-    const totalValueOfWinnerXPrizes = prizesWinnerXKeys.reduce((totalValueWinnerXPrizes, prizeXKey) => {
-      const prizeX = info[prizeXKey];
-      const { prizeId, quantity } = prizeX;
-
-      const totalValuePrizeX = RaffleUtils.calculatePrizeX(prizeX);
-      winnerXPrizeInfo[prizeXKey] = { prizeId, quantity, totalValue: totalValuePrizeX };
-
-      return totalValueWinnerXPrizes + totalValuePrizeX;
-    }, 0);
-
-    const winnerXPrizeObj: TRaffleWinnerPrizes = {
-      info: winnerXPrizeInfo,
-      totalValue: totalValueOfWinnerXPrizes,
-    };
-
-    return { winnerXPrizeObj };
-  }
-
-  static getPrizesValues(prizes: TRaffleCreationPrizesWinners) {
-    const winnersKeys = Object.keys(prizes);
-
-    const winnersPrizesObj: TRaffleWinnersPrizes = {};
-
-    const prizesTotalValue = winnersKeys.reduce((total, winnerXKey) => {
-      const winnerXInfo = prizes[winnerXKey]['info'];
-      const { winnerXPrizeObj } = RaffleUtils.getWinnerXPrize(winnerXInfo);
-      const { totalValue } = winnerXPrizeObj;
-
-      winnersPrizesObj[winnerXKey] = winnerXPrizeObj;
-
-      return total + totalValue;
-    }, 0);
-
-    return { prizesTotalValue, winnersPrizesObj };
-  }
-
   static calculateTicketPriceAndRaffleOwnerCost(
     prizesTotalValue: number,
     discountPercentage: number,
@@ -155,7 +105,7 @@ class RaffleUtils {
   static getRaffleDetails(payload: IRaffleCreationPayload) {
     const { prizes, discountPercentage, totalTickets } = payload;
 
-    const { prizesTotalValue, winnersPrizesObj } = RaffleUtils.getPrizesValues(prizes);
+    const { prizesTotalValue, winnersPrizesObj } = GetPrizesValues(prizes);
 
     const { ticketPrice, raffleOwnerCost } = RaffleUtils.calculateTicketPriceAndRaffleOwnerCost(
       prizesTotalValue,
@@ -262,13 +212,16 @@ class RaffleUtils {
         createdAt: filteredCreatedAt,
         finishedAt: filteredFinishedAt,
       };
-    } catch (err: unknown) {
-      console.log('filterRaffleToFrontEnd err: ', err);
-      throw err;
+    } catch (error: unknown) {
+      console.log('filterRaffleToFrontEnd err: ', error);
+      throw error;
     }
   }
 
-  static async getAllRafflesAndSaveInRedis() {
+  static async loadAndCacheRaffles(): Promise<{
+    activeRaffles: IRaffleToFrontEnd[];
+    endedRaffles: IRaffleToFrontEnd[];
+  }> {
     const allActiveRaffles = await FirebaseInstance.getManyDocumentsByParam<IRaffleInDb>('raffles', 'status', 'active');
     const lastTenEndedRaffles = await FirebaseInstance.getManyDocumentsByParamInChunks<IRaffleInDb>({
       collection: 'raffles',
@@ -307,30 +260,32 @@ class RaffleUtils {
 
   static async getRafflesFromRedis(): Promise<IRafflesInRedis | null> {
     const rafflesRedisKey = getRedisKeyHelper('allRaffles');
-    const rafflesFromRedis = await RedisInstance.get<IRafflesInRedis>(rafflesRedisKey, { isJSON: true });
-    if (!rafflesFromRedis) return null;
+    const rafflesCache = await RedisInstance.get<IRafflesInRedis>(rafflesRedisKey, { isJSON: true });
+    if (!rafflesCache) return null;
 
-    return rafflesFromRedis;
+    return rafflesCache;
   }
 
-  static async getAllRaffles(): Promise<IRafflesInRedis> {
-    /* FIX - race condition */
-
-    const rafflesFromRedis = await RaffleUtils.getRafflesFromRedis();
-    if (rafflesFromRedis) return rafflesFromRedis;
-
-    const allRaffles = await RaffleUtils.getAllRafflesAndSaveInRedis();
+  /* Syncronize DB raffles with cache */
+  static async syncRaffles() {
+    const allRaffles = await RaffleUtils.loadAndCacheRaffles();
     return allRaffles;
   }
 
+  static async getRafflesCache(): Promise<IRafflesInRedis> {
+    const rafflesCache = await RaffleUtils.getRafflesFromRedis();
+    if (!rafflesCache) throw new RafflesNotSync();
+
+    return rafflesCache;
+  }
+
   /* Rever a necessidade de passar 'findIn' como parâmetro */
-  static async getSpecificRaffleInRedis(payload: {
+  static async getSpecificRaffleCache(payload: {
     reqType: IPubSubConfig['reqType'] | 'FINISH_RAFFLE';
     gameId: string;
     findIn: 'active' | 'ended';
-    userId?: string;
   }): Promise<IRaffleToFrontEnd> {
-    const { gameId, findIn, reqType, userId } = payload;
+    const { gameId, findIn } = payload;
 
     const rafflesRedisKey = getRedisKeyHelper('allRaffles');
     const allRaffles = await RedisInstance.get<IRafflesInRedis>(rafflesRedisKey, { isJSON: true });
@@ -341,11 +296,7 @@ class RaffleUtils {
     if (findIn === 'active') {
       const raffleFound = activeRaffles.find((raffle) => raffle.gameId === gameId);
       if (!raffleFound) {
-        if ((reqType === 'BUY_RAFFLE_TICKET' || reqType === 'CREATE_RAFFLE') && userId) {
-          throw new GameAlreadyFinishedError({ reqType, userId });
-        }
-
-        throw new RaffleLostError(JSON.stringify(payload));
+        throw new RaffleNotFound(JSON.stringify(payload));
       }
 
       return raffleFound;
@@ -353,7 +304,7 @@ class RaffleUtils {
 
     if (findIn === 'ended') {
       const raffleFound = endedRaffles.find((raffle) => raffle.gameId === gameId);
-      if (!raffleFound) throw new UnknownError('Raffle not found.');
+      if (!raffleFound) throw new RaffleNotFound(JSON.stringify(payload));
 
       return raffleFound;
     }
@@ -361,7 +312,7 @@ class RaffleUtils {
     throw new UnknownError('Invalid request');
   }
 
-  static async updateSpecificRaffleInRedis(
+  static async updateSpecificRaffleCache(
     gameId: string,
     raffleObj: IRaffleToFrontEnd,
     statusToPutUpdatedRaffle: 'active' | 'ended',
@@ -400,21 +351,25 @@ class RaffleUtils {
     return updatedRafflesObj;
   }
 
-  static async updateBetOnRaffleInRedis(gameToUpdateId: string, betToAdd: IBetToFrontEnd) {
-    const rafflesFromRedis = await RaffleUtils.getRafflesFromRedis();
-    if (!rafflesFromRedis) throw new UnknownError('Raffle not found to update bets.');
+  static async syncBetWithRaffleCache(gameToUpdateId: string, betToAdd: IBetToFrontEnd) {
+    try {
+      const rafflesCache = await RaffleUtils.getRafflesFromRedis();
+      if (!rafflesCache) throw new UnknownError('Raffle not found to update bets.');
 
-    const raffleToUpdate = rafflesFromRedis.activeRaffles.find((raffle) => raffle.gameId === gameToUpdateId);
-    if (!raffleToUpdate) throw new UnknownError('Raffle not found to update bets.');
+      const raffleToUpdate = rafflesCache.activeRaffles.find((raffle) => raffle.gameId === gameToUpdateId);
+      if (!raffleToUpdate) throw new UnknownError('Raffle not found to update bets.');
 
-    const raffleInfoUpdatedObj: IRaffleToFrontEnd['info'] = {
-      ...raffleToUpdate.info,
-      bets: [betToAdd, ...raffleToUpdate.info.bets],
-      ticketsBought: (raffleToUpdate.info.ticketsBought += betToAdd.info.tickets.length),
-    };
-    const raffleUpdatedObj: IRaffleToFrontEnd = { ...raffleToUpdate, info: raffleInfoUpdatedObj };
+      const raffleInfoUpdatedObj: IRaffleToFrontEnd['info'] = {
+        ...raffleToUpdate.info,
+        bets: [betToAdd, ...raffleToUpdate.info.bets],
+        ticketsBought: (raffleToUpdate.info.ticketsBought += betToAdd.info.tickets.length),
+      };
+      const raffleUpdatedObj: IRaffleToFrontEnd = { ...raffleToUpdate, info: raffleInfoUpdatedObj };
 
-    await RaffleUtils.updateSpecificRaffleInRedis(gameToUpdateId, raffleUpdatedObj, 'active');
+      await RaffleUtils.updateSpecificRaffleCache(gameToUpdateId, raffleUpdatedObj, 'active');
+    } catch (error: any) {
+      throw new SyncBetWithRaffleCacheError(error);
+    }
   }
 
   static async getWinnersBetsObjs(bets: IBetToFrontEnd[], drawnNumbersInfo: TDrawnNumbersInfo) {

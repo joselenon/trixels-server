@@ -132,22 +132,24 @@ export class CodeUsageLimitError extends ClientError {
 
 export class InsufficientBalanceError extends ClientError {
   constructor(
-    pubSubConfig: IPubSubConfig,
+    pubSubConfig?: IPubSubConfig,
     message: string = RESPONSE_CONFIG.ERROR.CLIENT_ERROR_MSGS.INSUFFICIENT_BALANCE,
   ) {
     super(message, RESPONSE_CONFIG.ERROR.NAMES.InsufficientBalanceError, 403);
 
-    PubSubEventManager.publishEvent(
-      'GET_LIVE_MESSAGES',
-      {
-        success: false,
-        type: pubSubConfig.reqType,
-        message: 'INSUFFICIENT_BALANCE',
-        request: pubSubConfig.request,
-        data: '',
-      },
-      pubSubConfig.userId,
-    );
+    if (pubSubConfig) {
+      PubSubEventManager.publishEvent(
+        'GET_LIVE_MESSAGES',
+        {
+          success: false,
+          type: pubSubConfig.reqType,
+          message: 'INSUFFICIENT_BALANCE',
+          request: pubSubConfig.request,
+          data: '',
+        },
+        pubSubConfig.userId,
+      );
+    }
   }
 }
 

@@ -43,13 +43,10 @@ class UserCredentialsService {
     const { roninWalletValue } = payload;
     const filteredPayload = { ...payload, roninWallet: roninWalletValue?.toLowerCase() || '' };
 
-    const rpcResponse = await RabbitMQInstance.sendRPCMessage<
-      {
-        userDoc: IFirebaseResponse<IUser>;
-        payload: IUpdateUserCredentialsPayload;
-      },
-      IUserToFrontEnd
-    >('updateUserCredentialsQueue', { userDoc, payload: filteredPayload });
+    const rpcResponse = await RabbitMQInstance.sendRPCMessage<IUserToFrontEnd>('updateUserCredentialsQueue', {
+      userDoc,
+      payload: filteredPayload,
+    });
     RabbitMQInstance.checkForErrorsAfterRPC(rpcResponse);
 
     const { fnReturnedData } = rpcResponse;

@@ -1,6 +1,3 @@
-import * as admin from 'firebase-admin';
-
-import FirebaseCredentials from './config/app/FirebaseCredentials';
 import ENVIRONMENT from './config/constants/ENVIRONMENT';
 import AppService from './services/AppService';
 import FirestoreService from './services/FirestoreService';
@@ -12,9 +9,6 @@ import RegisterUserService from './services/UserServices/RegisterUserService';
 import UserCredentialsService from './services/UserServices/UserCredentialsService';
 import StartRafflesQueuesService from './services/RaffleServices/StartRafflesQueuesService';
 
-const firebaseApp = admin.initializeApp({
-  credential: admin.credential.cert(FirebaseCredentials),
-});
 const FirebaseInstance = new FirestoreService();
 
 const RedisInstance = new RedisService(
@@ -42,4 +36,4 @@ async function init() {
 
 init();
 
-export { FirebaseInstance, RedisInstance, RabbitMQInstance, firebaseApp };
+export { FirebaseInstance, RedisInstance, RabbitMQInstance };

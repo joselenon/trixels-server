@@ -1,4 +1,4 @@
-import { IRaffleInDb } from '../../config/interfaces/IRaffles';
+import { IRaffleInDb } from '../../config/interfaces/RaffleInterfaces/IRaffles';
 
 type TDrawnNumbersInfo = {
   number: number;

@@ -22,7 +22,7 @@ interface IRegisterUserPayload {
 
 class RegisterUserService {
   async registerUser(payload: IRegisterUserPayload): Promise<IRegisterUserReturnedResponse> {
-    const rpcResponse = await RabbitMQInstance.sendRPCMessage<IRegisterUserPayload, IRegisterUserReturnedResponse>(
+    const rpcResponse = await RabbitMQInstance.sendRPCMessage<IRegisterUserReturnedResponse>(
       'registerUserQueue',
       payload,
     );

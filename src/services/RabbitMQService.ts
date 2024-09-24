@@ -53,8 +53,8 @@ export default class RabbitMQService {
           this.connect();
         });
 
-        this.connection.on('error', (err) => {
-          console.error('Connection error:', err);
+        this.connection.on('error', (error) => {
+          console.error('Connection error:', error);
           this.connection = null;
           this.channel = null;
         });
@@ -114,9 +114,9 @@ export default class RabbitMQService {
       return;
     }
 
-    this.channel.assertQueue('', { exclusive: true }, (err, q) => {
-      if (err) {
-        console.error('Failed to create reply queue:', err);
+    this.channel.assertQueue('', { exclusive: true }, (error, q) => {
+      if (error) {
+        console.error('Failed to create reply queue:', error);
         return;
       }
 
@@ -161,7 +161,7 @@ export default class RabbitMQService {
       throw new Error('Channel unreached.');
     }
 
-    const { queueOptions } = this.getRMQConfig(queueName);
+    const { queueOptions } = this.getMessageAndQueueOptions(queueName);
 
     this.channel.assertQueue(queueName, queueOptions);
   }
@@ -175,11 +175,13 @@ export default class RabbitMQService {
     this.channel.deleteQueue(queueName);
   }
 
-  getRMQConfig(queueName: string): { queueOptions: amqp.Options.AssertQueue; messageOptions: amqp.Options.Publish } {
+  getMessageAndQueueOptions(queueName: string): {
+    queueOptions: amqp.Options.AssertQueue;
+    messageOptions: amqp.Options.Publish;
+  } {
     if (queueName === 'balanceUpdateQueue') {
       return { queueOptions: { durable: true }, messageOptions: { persistent: true } };
     }
-
     if (queueName.includes('raffle:')) {
       return { queueOptions: { durable: true }, messageOptions: { persistent: true } };
     }
@@ -193,7 +195,7 @@ export default class RabbitMQService {
       throw new Error('Channel unreached.');
     }
 
-    const { messageOptions, queueOptions } = this.getRMQConfig(queueName);
+    const { messageOptions, queueOptions } = this.getMessageAndQueueOptions(queueName);
 
     const messageToJSON = JSON.stringify(message);
 
@@ -215,15 +217,12 @@ export default class RabbitMQService {
     const correlationId = uuidv4();
     const messageToJSON = JSON.stringify(message);
 
-    const queueOptions: amqp.Options.AssertQueue = {};
-    if (queueName === 'balanceUpdateQueue') {
-      queueOptions['durable'] = true;
-    }
+    const { queueOptions, messageOptions } = this.getMessageAndQueueOptions(queueName);
 
-    const messageOptions: amqp.Options.Publish = {
+    const rpcMessageOptions: amqp.Options.Publish = {
       correlationId,
       replyTo: this.replyQueue!,
-      persistent: queueName === 'balanceUpdateQueue' ? true : false,
+      ...messageOptions,
     };
 
     return new Promise((resolve) => {
@@ -237,7 +236,7 @@ export default class RabbitMQService {
       });
 
       this.channel?.assertQueue(queueName, queueOptions);
-      this.channel?.sendToQueue(queueName, Buffer.from(messageToJSON), messageOptions);
+      this.channel?.sendToQueue(queueName, Buffer.from(messageToJSON), rpcMessageOptions);
     });
   }
 
@@ -268,7 +267,7 @@ export default class RabbitMQService {
       throw new Error('Channel unreached.');
     }
 
-    const { queueOptions } = this.getRMQConfig(queueName);
+    const { queueOptions } = this.getMessageAndQueueOptions(queueName);
 
     this.channel.prefetch(1);
     this.channel.assertQueue(queueName, queueOptions);
@@ -284,13 +283,13 @@ export default class RabbitMQService {
           if (correlationId) {
             this.sendReplyMessage({ authorized: true, fnReturnedData }, correlationId);
           }
-        } catch (err: any) {
-          if (err instanceof ClientError) {
+        } catch (error: any) {
+          if (error instanceof ClientError) {
             this.channel?.nack(message, false, false); // don't requeue the message
           }
 
           /* Adaptar a partir das subinstâncias de erros */
-          if (err instanceof SystemError) {
+          if (error instanceof SystemError) {
             this.channel?.nack(message, false, false); // don't requeue the message
           }
 
@@ -299,7 +298,7 @@ export default class RabbitMQService {
               {
                 authorized: false,
                 fnReturnedData: null,
-                errorProps: { name: err.name, type: err.type, status: err.status },
+                errorProps: { name: error.name, type: error.type, status: error.status },
               } as IRPCResponse<null>,
               correlationId,
             );

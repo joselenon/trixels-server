@@ -25,8 +25,8 @@ class DepositController {
           data: walletAddress,
         }),
       );
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -43,8 +43,8 @@ class DepositController {
       return res
         .status(200)
         .json(responseBody({ success: true, type: 'REDEEM_CODE', message: 'REDEEM_CODE_MSG', data: null }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   }
 }

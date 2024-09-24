@@ -12,8 +12,8 @@ export function sentryPlugin(): ApolloServerPlugin {
             errors.forEach((error: any) => {
               Sentry.captureException(error.originalError || error);
             });
-          } catch (err: any) {
-            throw new Error(err);
+          } catch (error: any) {
+            throw new Error(error);
           }
         },
       };

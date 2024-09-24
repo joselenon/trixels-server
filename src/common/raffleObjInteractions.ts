@@ -1,7 +1,10 @@
-import { TRaffleCreationPrizesWinners, TRaffleCreationWinnerPrizes } from '../config/interfaces/IRaffleCreation';
+import {
+  TRaffleCreationItemsWinners,
+  TRaffleCreationWinnerPrizes,
+} from '../config/interfaces/RaffleInterfaces/IRaffleCreation';
 
 /* Returns all prize items (of all the winners) */
-function getAllPrizesItems(prizes: TRaffleCreationPrizesWinners) {
+function getAllPrizesItems(prizes: TRaffleCreationItemsWinners) {
   const getItemsIdsFromPrizesOfWinner = (winnerXPrizes: TRaffleCreationWinnerPrizes): string[] => {
     const winnerXPrizesKeys = Object.keys(winnerXPrizes['info']);
     return winnerXPrizesKeys.map((prizeXKey) => {

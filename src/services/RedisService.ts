@@ -3,7 +3,7 @@ import Redis from 'ioredis';
 import { promisify } from 'util';
 
 import { TRedisCommands, TRedisKeys, TRedisOptions } from '../config/interfaces/IRedis';
-import { RedisError } from '../config/errors/classes/SystemErrors';
+import { UnknownError } from '../config/errors/classes/SystemErrors';
 
 export default class RedisService {
   public client: Redis;
@@ -34,7 +34,7 @@ export default class RedisService {
     try {
       await this.client.ping();
       return true;
-    } catch (err) {
+    } catch (error) {
       return false;
     }
   }
@@ -47,10 +47,10 @@ export default class RedisService {
       try {
         const result = await func();
         return result;
-      } catch (err: any) {
+      } catch (error: any) {
         retryCount++;
         if (retryCount >= maxTries) {
-          throw new RedisError(err); // Se atingir o máximo de tentativas, lança o erro
+          throw new UnknownError(error); // Se atingir o máximo de tentativas, lança o erro
         }
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }

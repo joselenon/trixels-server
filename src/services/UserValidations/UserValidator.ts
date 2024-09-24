@@ -77,8 +77,8 @@ class UserValidator {
       });
 
       return registry;
-    } catch (err: any) {
-      throw new UnknownError(err);
+    } catch (error: any) {
+      throw new UnknownError(error);
     }
   }
 }

@@ -36,8 +36,8 @@ class GoogleController {
       res
         .status(200)
         .json(responseBody({ success: true, type: 'LOG_USER', message: 'GET_MSG', data: { authorizeUrl } }));
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -81,7 +81,7 @@ class GoogleController {
       res.cookie(CookiesConfig.RefreshTokenCookie.key, refreshToken, CookiesConfig.RefreshTokenCookie.config);
       res.cookie(CookiesConfig.JWTCookie.key, accessToken, CookiesConfig.JWTCookie.config);
       res.redirect(`${CLIENT_FULL_URL}/googleauth?data=${encodeURIComponent(dataToJSON)}`);
-    } catch (err) {
+    } catch (error) {
       const dataToJSON = JSON.stringify({ success: false, data: null });
       res.redirect(`${CLIENT_FULL_URL}/googleauth?data=${encodeURIComponent(dataToJSON)}`);
     }
